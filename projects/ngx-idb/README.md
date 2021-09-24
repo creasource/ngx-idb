@@ -1,24 +1,57 @@
-# NgxIdb
+# NgxIDB
 
-This library was generated with [Angular CLI](https://github.com/angular/angular-cli) version 12.2.0.
+An Angular wrapper to IndexedDB.
 
-## Code scaffolding
+## Installation
 
-Run `ng generate component component-name --project ngx-idb` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module --project ngx-idb`.
-> Note: Don't forget to add `--project ngx-idb` or else it will be added to the default project in your `angular.json` file. 
+```
+npm i @creasource/ngx-idb @creasource/reactive-idb
+```
 
-## Build
+```
+yarn add @creasource/ngx-idb @creasource/reactive-idb
+```
 
-Run `ng build ngx-idb` to build the project. The build artifacts will be stored in the `dist/` directory.
+## Basic Usage
 
-## Publishing
+Module import:
+```ts
+import { IndexedDBModule } from "@creasource/ngx-idb";
 
-After building your library with `ng build ngx-idb`, go to the dist folder `cd dist/ngx-idb` and run `npm publish`.
+IndexedDBModule.forRoot({
+  name: 'myDatabase',
+  schema: [
+    {
+      version: 1,
+      stores: [
+        {
+          name: 'myStore',
+          options: { autoIncrement: true },
+        },
+      ],
+    },
+  ],
+})
+```
 
-## Running unit tests
+Service import:
 
-Run `ng test ngx-idb` to execute the unit tests via [Karma](https://karma-runner.github.io).
+```ts
+import { Inject, Injectable } from "@angular/core";
+import { IndexedDBService, Database } from "@creasource/ngx-idb";
 
-## Further help
+@Injectable()
+export class MyService {
+  constructor(@Inject(Database('myDatabase')) private database: IndexedDBService) {
+    database
+      .getStore<{ name: string }>('MyStore')
+      .add({ name: 'John' })
+      .subscribe({
+        next: (key) => console.log(key),
+        error: (err) => console.error(err),
+      });
+  }
+}
+```
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+For more information see [reactive-idb](https://github.com/creasource/reactive-idb)
