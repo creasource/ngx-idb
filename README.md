@@ -1,27 +1,57 @@
-# NgxIdb
+# NgxIDB
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 12.2.7.
+An Angular wrapper to IndexedDB.
 
-## Development server
+## Installation
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
+```
+npm i @creasource/ngx-idb @creasource/reactive-idb
+```
 
-## Code scaffolding
+```
+yarn add @creasource/ngx-idb @creasource/reactive-idb
+```
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+## Basic Usage
 
-## Build
+Module import:
+```ts
+import { IndexedDBModule } from "@creasource/ngx-idb";
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+IndexedDBModule.forRoot({
+  name: 'myDatabase',
+  schema: [
+    {
+      version: 1,
+      stores: [
+        {
+          name: 'myStore',
+          options: { autoIncrement: true },
+        },
+      ],
+    },
+  ],
+})
+```
 
-## Running unit tests
+Service import:
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+```ts
+import { Inject, Injectable } from "@angular/core";
+import { IndexedDBService, Database } from "@creasource/ngx-idb";
 
-## Running end-to-end tests
+@Injectable()
+export class MyService {
+  constructor(@Inject(Database('myDatabase')) private database: IndexedDBService) {
+    database
+      .getStore<{ name: string }>('MyStore')
+      .add({ name: 'John' })
+      .subscribe({
+        next: (key) => console.log(key),
+        error: (err) => console.error(err),
+      });
+  }
+}
+```
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+For more information see [reactive-idb](https://github.com/creasource/reactive-idb)
