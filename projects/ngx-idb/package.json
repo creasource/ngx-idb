@@ -1,6 +1,7 @@
 {
   "name": "@creasource/ngx-idb",
-  "version": "0.0.1",
+  "version": "0.0.2",
+  "repository": "https://github.com/creasource/ngx-idb",
   "description": "Angular wrapper for @creasource/reactive-idb",
   "license": "MIT",
   "keywords": [
