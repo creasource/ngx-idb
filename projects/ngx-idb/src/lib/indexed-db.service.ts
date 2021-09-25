@@ -4,7 +4,7 @@ import {
   ReactiveIDBTransaction,
   ReactiveIDBTransformer,
 } from '@creasource/reactive-idb';
-import { concatMap, shareReplay } from 'rxjs/operators';
+import { concatMap, shareReplay, tap } from 'rxjs/operators';
 import { Observable } from 'rxjs';
 
 export type Store<T> = {
@@ -15,10 +15,14 @@ export type Store<T> = {
 };
 
 export class IndexedDBService {
-  private readonly db: Observable<ReactiveIDBDatabase>;
+  private db!: Observable<ReactiveIDBDatabase>;
 
-  constructor(options: ReactiveIDBDatabaseOptions) {
-    this.db = ReactiveIDBDatabase.create(options).pipe(shareReplay(1));
+  constructor(public readonly options: ReactiveIDBDatabaseOptions) {
+    this.initialize();
+  }
+
+  private initialize() {
+    this.db = ReactiveIDBDatabase.create(this.options).pipe(shareReplay(1));
   }
 
   get database(): Observable<ReactiveIDBDatabase> {
@@ -90,5 +94,13 @@ export class IndexedDBService {
       delete: (key: IDBValidKey): Observable<void> =>
         store$.pipe(concatMap((s) => s.delete$(key))),
     };
+  }
+
+  clear$(): Observable<void> {
+    return this.db.pipe(
+      tap((db) => db.close()),
+      concatMap((db) => db.clear$()),
+      tap(() => this.initialize())
+    );
   }
 }

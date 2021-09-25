@@ -44,7 +44,7 @@ import { IndexedDBService, Database } from "@creasource/ngx-idb";
 export class MyService {
   constructor(@Inject(Database('myDatabase')) private database: IndexedDBService) {
     database
-      .getStore<{ name: string }>('MyStore')
+      .getStore<{ name: string }>('myStore')
       .add({ name: 'John' })
       .subscribe({
         next: (key) => console.log(key),
