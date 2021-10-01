@@ -55,3 +55,11 @@ export class MyService {
 ```
 
 For more information see [reactive-idb](https://github.com/creasource/reactive-idb)
+
+# Dev
+
+```
+yarn build
+cd dist/ngx-idb
+yarn link
+```

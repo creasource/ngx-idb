@@ -12,6 +12,7 @@
     "declaration": false,
     "downlevelIteration": true,
     "paths": {
+      "ngrx-idb": ["dist/ngrx-idb"],
       "ngx-idb": ["dist/ngx-idb"]
     },
     "experimentalDecorators": true,

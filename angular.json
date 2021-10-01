@@ -42,6 +42,45 @@
           }
         }
       }
+    },
+    "ngrx-idb": {
+      "projectType": "library",
+      "root": "projects/ngrx-idb",
+      "sourceRoot": "projects/ngrx-idb/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "project": "projects/ngrx-idb/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/ngrx-idb/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/ngrx-idb/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@nrwl/jest:jest",
+          "options": {
+            "jestConfig": "projects/ngrx-idb/jest.config.js",
+            "runInBand": true
+          }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "projects/ngrx-idb/**/*.ts",
+              "projects/ngrx-idb/**/*.html"
+            ]
+          }
+        }
+      }
     }
   },
   "defaultProject": "ngx-idb",
