@@ -1,4 +1,4 @@
-import { EntityIndexesDefinition, EntityState } from './models';
+import { EntityIndexDefinition, EntityState } from './models';
 
 export function getInitialEntityState<V>(): EntityState<V> {
   return {
@@ -9,16 +9,18 @@ export function getInitialEntityState<V>(): EntityState<V> {
 }
 
 export function createInitialStateFactory<V>(
-  indexes: EntityIndexesDefinition<V>
+  indexes: EntityIndexDefinition<V>[]
 ) {
   function getInitialState(): EntityState<V>;
   function getInitialState<S extends object>(
     additionalState: S
   ): EntityState<V> & S;
   function getInitialState(additionalState: any = {}): any {
-    const indexesNames = Object.keys(indexes);
+    const indexesNames = indexes.map((def) =>
+      typeof def === 'string' ? def : def.name
+    );
     const obj = Object.assign(getInitialEntityState(), additionalState);
-    indexesNames.forEach((name) => (obj.indexes[name] = []));
+    indexesNames.forEach((name) => (obj.indexes[name] = {}));
     return obj;
   }
 

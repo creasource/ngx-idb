@@ -58,18 +58,19 @@ export interface EntityState<T> {
   };
 }
 
-export interface EntityIndexesDefinition<T> {
-  [name: string]: {
-    multiEntry?: boolean;
-    unique?: boolean;
-    keySelector: KeySelector<T>;
-  };
-}
+export type EntityIndexDefinition<T> =
+  | {
+      name: string;
+      multiEntry?: boolean;
+      unique?: boolean;
+      keySelector?: KeySelector<T>;
+    }
+  | string;
 
 export interface EntityDefinition<T> {
   autoIncrement?: boolean;
   keySelector?: KeySelector<T>;
-  indexes: EntityIndexesDefinition<T>;
+  indexes: EntityIndexDefinition<T>[];
 }
 
 export interface EntityStateAdapter<T> {

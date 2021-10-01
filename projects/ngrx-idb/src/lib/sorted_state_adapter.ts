@@ -1,5 +1,5 @@
 import {
-  EntityIndexesDefinition,
+  EntityIndexDefinition,
   EntityMap,
   EntityMapOneNum,
   EntityMapOneStr,
@@ -15,14 +15,30 @@ import { getKey, getSort, selectKeyValue } from './utils';
 export function createSortedStateAdapter<T>(
   autoIncrement: boolean,
   selectKey: KeySelector<T> | undefined,
-  indexes: EntityIndexesDefinition<T>
+  indexes: EntityIndexDefinition<T>[]
 ): EntityStateAdapter<T>;
 export function createSortedStateAdapter<T>(
   autoIncrement: boolean,
   selectKey: KeySelector<T> | undefined,
-  indexes: EntityIndexesDefinition<T>
+  indexes: EntityIndexDefinition<T>[]
 ): any {
   type R = EntityState<T>;
+
+  function getIndexDefinition(index: EntityIndexDefinition<T>) {
+    if (typeof index === 'string') {
+      return {
+        name: index,
+        keySelector: (model: T) => (model as any)[index],
+      };
+    }
+    return {
+      name: index.name,
+      keySelector:
+        index.keySelector ?? ((model: T) => (model as any)[index.name]),
+    };
+  }
+
+  const indexesDefs = indexes.map(getIndexDefinition);
 
   function removeAll<S extends R>(state: S): S;
   function removeAll<S extends R>(state: any): S {
@@ -30,6 +46,22 @@ export function createSortedStateAdapter<T>(
       keys: [],
       entities: {},
       indexes: {},
+    });
+  }
+
+  function deleteEntitiesFromIndexes(
+    toDelete: string[] | number[],
+    state: R
+  ): void;
+  function deleteEntitiesFromIndexes(toDelete: any[], state: any): void {
+    indexesDefs.forEach((def) => {
+      const index = state.indexes[def.name];
+      Object.keys(index).forEach((key) => {
+        index[key] = index[key].filter(
+          (primaryKey: any) => !toDelete.includes(primaryKey)
+        );
+        if (index[key].length === 0) delete index[key];
+      });
     });
   }
 
@@ -58,11 +90,7 @@ export function createSortedStateAdapter<T>(
     if (didMutate) {
       state.keys = state.keys.filter((id: any) => id in state.entities);
 
-      for (const index in indexes) {
-        state.indexes[index] = state.indexes[index].filter(
-          (m: any) => m.primaryKey in toDelete
-        );
-      }
+      deleteEntitiesFromIndexes(toDelete, state);
     }
 
     return didMutate ? DidMutate.Both : DidMutate.None;
@@ -105,6 +133,7 @@ export function createSortedStateAdapter<T>(
     const key = selectKey ? selectKeyValue(entity, selectKey) : -1;
     if (key in state.entities) {
       state.keys = state.keys.filter((val: string | number) => val !== key);
+      deleteEntitiesFromIndexes([key], state);
       merge([entity], state);
       return DidMutate.Both;
     } else {
@@ -165,14 +194,18 @@ export function createSortedStateAdapter<T>(
     } else {
       const originalKeys = state.keys;
       const updatedIndexes: any[] = [];
-      state.keys = state.keys.filter((key: any, index: number) => {
+      const keysToDelete: any[] = [];
+      state.keys = (state.keys as any[]).filter((key: any, index: number) => {
         if (key in state.entities) {
           return true;
         } else {
           updatedIndexes.push(index);
+          keysToDelete.push(key);
           return false;
         }
       });
+
+      deleteEntitiesFromIndexes(keysToDelete, state);
 
       merge(models, state);
 
@@ -318,13 +351,14 @@ export function createSortedStateAdapter<T>(
       generatedKeys.forEach((key, i) => (state.entities[key] = models[i]));
     }
 
-    for (const index in indexes) {
-      const keySelector = indexes[index].keySelector;
+    indexes.forEach((index) => {
+      const { name, keySelector } = getIndexDefinition(index);
       const sort = getSort(
         models.find((model) => getKey(model, keySelector) !== undefined),
         keySelector
       );
-      const indexObj = { ...state.indexes[index] } ?? {};
+      const indexObj = { ...state.indexes[name] } ?? {};
+
       const sortedModels = [...models].sort(sort);
 
       // const keys: any[] = [];
@@ -360,11 +394,12 @@ export function createSortedStateAdapter<T>(
           selectKey
             ? primaryKeys.push(getKey(o.model, selectKey))
             : primaryKeys.push(generatedKeys[o.index]);
+          primaryKeys.sort();
           indexObj[o.key] = primaryKeys;
         });
-      delete state.indexes[index];
-      state.indexes[index] = indexObj;
-    }
+      delete state.indexes[name];
+      state.indexes[name] = indexObj;
+    });
   }
 
   return {

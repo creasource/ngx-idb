@@ -25,7 +25,7 @@ describe('Entity State Selectors', () => {
     beforeEach(() => {
       adapter = createIDBEntityAdapter({
         keySelector: (book: BookModel) => book.id,
-        indexes: {},
+        indexes: [],
       });
 
       state = {
@@ -73,7 +73,7 @@ describe('Entity State Selectors', () => {
     beforeEach(() => {
       adapter = createIDBEntityAdapter({
         keySelector: (book: BookModel) => book.id,
-        indexes: {},
+        indexes: [],
       });
 
       state = adapter.setAll(

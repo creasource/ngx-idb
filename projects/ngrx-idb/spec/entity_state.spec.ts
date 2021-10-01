@@ -7,7 +7,11 @@ describe('Entity State', () => {
   beforeEach(() => {
     adapter = createIDBEntityAdapter({
       keySelector: (book: BookModel) => book.id,
-      indexes: {},
+      indexes: [
+        { name: 'title', keySelector: 'title' },
+        { name: 'year', keySelector: (book: BookModel) => book.year },
+        'editor',
+      ],
     });
   });
 
@@ -17,7 +21,11 @@ describe('Entity State', () => {
     expect(initialState).toEqual({
       keys: [],
       entities: {},
-      indexes: {},
+      indexes: {
+        title: {},
+        year: {},
+        editor: {},
+      },
     });
   });
 
@@ -30,7 +38,11 @@ describe('Entity State', () => {
       ...additionalProperties,
       keys: [],
       entities: {},
-      indexes: {},
+      indexes: {
+        title: {},
+        year: {},
+        editor: {},
+      },
     });
   });
 });

@@ -35,6 +35,7 @@ export function createStateOperator<V, R>(
       return {
         ...state,
         entities: clonedEntityState.entities,
+        indexes: clonedEntityState.indexes,
       };
     }
 
