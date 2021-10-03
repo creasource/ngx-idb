@@ -1,34 +1,48 @@
 import { createSelector } from '@ngrx/store';
-import { EntityState, IDBEntitySelectors, Dictionary } from './models';
+import { IDBEntityState, IDBEntitySelectors, Dictionary } from './models';
 
 export function createSelectorsFactory<T>() {
-  function getSelectors(): IDBEntitySelectors<T, EntityState<T>>;
+  function getSelectors(): IDBEntitySelectors<T, IDBEntityState<T>>;
   function getSelectors<V>(
-    selectState: (state: V) => EntityState<T>
+    selectState: (state: V) => IDBEntityState<T>
   ): IDBEntitySelectors<T, V>;
   function getSelectors(
-    selectState?: (state: any) => EntityState<T>
+    selectState?: (state: any) => IDBEntityState<T>
   ): IDBEntitySelectors<T, any> {
-    const selectKeys = (state: any) => state.keys;
-    const selectEntities = (state: EntityState<T>) => state.entities;
+    const selectKeys = (state: IDBEntityState<T>) => state.keys;
+    const selectEntities = (state: IDBEntityState<T>) => state.entities;
     const selectAll = createSelector(
       selectKeys,
       selectEntities,
-      (keys: T[], entities: Dictionary<T>): any =>
-        keys.map((key: any) => (entities as any)[key])
+      (keys: string[] | number[], entities: Dictionary<T>): any =>
+        keys.map((key) => entities[key])
     );
 
     const selectTotal = createSelector(selectKeys, (keys) => keys.length);
 
-    const selectIndexKeys = (index: string) => (state: any) =>
-      Object.keys(state.indexes[index]);
+    const selectIndexKeys = (index: string) => (state: IDBEntityState<T>) =>
+      state.indexes[index].keys;
 
-    const selectIndex = (index: string) => (state: any) => state.indexes[index];
+    const selectIndexEntities = (index: string) => (state: IDBEntityState<T>) =>
+      state.indexes[index].entities;
+
+    const selectIndexAll = (index: string) =>
+      createSelector(
+        selectIndexKeys(index),
+        selectIndexEntities(index),
+        selectEntities,
+        (keys, index, entities) =>
+          keys
+            .map((key) => index[key] as [])
+            .reduce((acc, curr) => [...acc, ...curr] as [], [])
+            .map((key) => entities[key] as T)
+      );
 
     if (!selectState) {
       return {
-        selectIndex,
         selectIndexKeys,
+        selectIndexEntities,
+        selectIndexAll,
         selectKeys,
         selectEntities,
         selectAll,
@@ -37,10 +51,12 @@ export function createSelectorsFactory<T>() {
     }
 
     return {
-      selectIndex: (index: string) =>
-        createSelector(selectState, selectIndex(index)),
       selectIndexKeys: (index: string) =>
         createSelector(selectState, selectIndexKeys(index)),
+      selectIndexEntities: (index: string) =>
+        createSelector(selectState, selectIndexEntities(index)),
+      selectIndexAll: (index: string) =>
+        createSelector(selectState, selectIndexAll(index)),
       selectKeys: createSelector(selectState, selectKeys),
       selectEntities: createSelector(selectState, selectEntities),
       selectAll: createSelector(selectState, selectAll),

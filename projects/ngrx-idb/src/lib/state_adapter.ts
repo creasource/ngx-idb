@@ -1,4 +1,4 @@
-import { EntityState } from './models';
+import { IDBEntityState } from './models';
 
 export enum DidMutate {
   EntitiesOnly,
@@ -7,13 +7,16 @@ export enum DidMutate {
 }
 
 export function createStateOperator<V, R>(
-  mutator: (arg: R, state: EntityState<V>) => DidMutate
-): EntityState<V>;
+  mutator: (arg: R, state: IDBEntityState<V>) => DidMutate
+): IDBEntityState<V>;
 export function createStateOperator<V, R>(
   mutator: (arg: any, state: any) => DidMutate
 ): any {
-  return function operation<S extends EntityState<V>>(arg: R, state: any): S {
-    const clonedEntityState: EntityState<V> = {
+  return function operation<S extends IDBEntityState<V>>(
+    arg: R,
+    state: any
+  ): S {
+    const clonedEntityState: IDBEntityState<V> = {
       keys: [...state.keys],
       entities: { ...state.entities },
       indexes: { ...state.indexes },

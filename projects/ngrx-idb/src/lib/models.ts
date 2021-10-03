@@ -45,16 +45,14 @@ export interface EntityMapOneStr<T> {
 
 export type EntityMapOne<T> = EntityMapOneNum<T> | EntityMapOneStr<T>;
 
-export type EntityIndex = {
-  [k: string]: string[] | number[];
-  [k: number]: string[] | number[];
-};
-
-export interface EntityState<T> {
+export interface IDBEntityState<T> {
   keys: string[] | number[];
   entities: Dictionary<T>;
   indexes: {
-    [name: string]: EntityIndex;
+    [name: string]: {
+      keys: string[] | number[];
+      entities: Dictionary<string[] | number[]>;
+    };
   };
 }
 
@@ -74,35 +72,38 @@ export interface EntityDefinition<T> {
 }
 
 export interface EntityStateAdapter<T> {
-  addOne<S extends EntityState<T>>(entity: T, state: S): S;
-  addMany<S extends EntityState<T>>(entities: T[], state: S): S;
+  addOne<S extends IDBEntityState<T>>(entity: T, state: S): S;
+  addMany<S extends IDBEntityState<T>>(entities: T[], state: S): S;
 
-  setAll<S extends EntityState<T>>(entities: T[], state: S): S;
-  setOne<S extends EntityState<T>>(entity: T, state: S): S;
-  setMany<S extends EntityState<T>>(entities: T[], state: S): S;
+  setAll<S extends IDBEntityState<T>>(entities: T[], state: S): S;
+  setOne<S extends IDBEntityState<T>>(entity: T, state: S): S;
+  setMany<S extends IDBEntityState<T>>(entities: T[], state: S): S;
 
-  removeOne<S extends EntityState<T>>(key: string, state: S): S;
-  removeOne<S extends EntityState<T>>(key: number, state: S): S;
+  removeOne<S extends IDBEntityState<T>>(key: string, state: S): S;
+  removeOne<S extends IDBEntityState<T>>(key: number, state: S): S;
 
-  removeMany<S extends EntityState<T>>(keys: string[], state: S): S;
-  removeMany<S extends EntityState<T>>(keys: number[], state: S): S;
-  removeMany<S extends EntityState<T>>(predicate: Predicate<T>, state: S): S;
+  removeMany<S extends IDBEntityState<T>>(keys: string[], state: S): S;
+  removeMany<S extends IDBEntityState<T>>(keys: number[], state: S): S;
+  removeMany<S extends IDBEntityState<T>>(predicate: Predicate<T>, state: S): S;
 
-  removeAll<S extends EntityState<T>>(state: S): S;
+  removeAll<S extends IDBEntityState<T>>(state: S): S;
 
-  updateOne<S extends EntityState<T>>(update: Update<T>, state: S): S;
-  updateMany<S extends EntityState<T>>(updates: Update<T>[], state: S): S;
+  updateOne<S extends IDBEntityState<T>>(update: Update<T>, state: S): S;
+  updateMany<S extends IDBEntityState<T>>(updates: Update<T>[], state: S): S;
 
-  upsertOne<S extends EntityState<T>>(entity: T, state: S): S;
-  upsertMany<S extends EntityState<T>>(entities: T[], state: S): S;
+  upsertOne<S extends IDBEntityState<T>>(entity: T, state: S): S;
+  upsertMany<S extends IDBEntityState<T>>(entities: T[], state: S): S;
 
-  mapOne<S extends EntityState<T>>(map: EntityMapOne<T>, state: S): S;
-  map<S extends EntityState<T>>(map: EntityMap<T>, state: S): S;
+  mapOne<S extends IDBEntityState<T>>(map: EntityMapOne<T>, state: S): S;
+  map<S extends IDBEntityState<T>>(map: EntityMap<T>, state: S): S;
 }
 
 export interface IDBEntitySelectors<T, V> {
   selectIndexKeys: (index: string) => (state: V) => string[] | number[];
-  selectIndex: (index: string) => (state: V) => EntityIndex | undefined;
+  selectIndexEntities: (
+    index: string
+  ) => (state: V) => Dictionary<string[] | number[]>;
+  selectIndexAll: (index: string) => (state: V) => T[];
   selectKeys: (state: V) => string[] | number[];
   selectEntities: (state: V) => Dictionary<T>;
   selectAll: (state: V) => T[];
@@ -111,10 +112,10 @@ export interface IDBEntitySelectors<T, V> {
 
 export interface IDBEntityAdapter<T> extends EntityStateAdapter<T> {
   keySelector: KeySelector<T> | undefined;
-  getInitialState(): EntityState<T>;
-  getInitialState<S extends object>(state: S): EntityState<T> & S;
-  getSelectors(): IDBEntitySelectors<T, EntityState<T>>;
+  getInitialState(): IDBEntityState<T>;
+  getInitialState<S extends object>(state: S): IDBEntityState<T> & S;
+  getSelectors(): IDBEntitySelectors<T, IDBEntityState<T>>;
   getSelectors<V>(
-    selectState: (state: V) => EntityState<T>
+    selectState: (state: V) => IDBEntityState<T>
   ): IDBEntitySelectors<T, V>;
 }

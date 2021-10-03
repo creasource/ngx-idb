@@ -1,4 +1,4 @@
-import { EntityState, EntityStateAdapter } from '../src/lib/models';
+import { IDBEntityState, EntityStateAdapter } from '../src/lib/models';
 import { createIDBEntityAdapter } from '../src/lib';
 import {
   AClockworkOrange,
@@ -9,7 +9,7 @@ import {
 
 describe('Sorted State Adapter', () => {
   let adapter: EntityStateAdapter<BookModel>;
-  let state: EntityState<BookModel>;
+  let state: IDBEntityState<BookModel>;
 
   beforeAll(() => {
     Object.defineProperty(Array.prototype, 'unwantedField', {
@@ -27,13 +27,30 @@ describe('Sorted State Adapter', () => {
     adapter = createIDBEntityAdapter({
       keySelector: (book: BookModel) => book.id,
       indexes: [
-        { name: 'title', keySelector: 'title' },
+        { name: 'title' },
         { name: 'year', keySelector: (book: BookModel) => book.year },
         'editor',
       ],
     });
 
-    state = { keys: [], entities: {}, indexes: {} };
+    state = {
+      keys: [],
+      entities: {},
+      indexes: {
+        title: {
+          keys: [],
+          entities: {},
+        },
+        year: {
+          keys: [],
+          entities: {},
+        },
+        editor: {
+          keys: [],
+          entities: {},
+        },
+      },
+    };
   });
 
   it('should let you add one entity to the state', () => {
@@ -46,11 +63,16 @@ describe('Sorted State Adapter', () => {
       },
       indexes: {
         title: {
-          [TheGreatGatsby.title]: [TheGreatGatsby.id],
+          keys: [TheGreatGatsby.title],
+          entities: { [TheGreatGatsby.title]: [TheGreatGatsby.id] },
         },
-        year: {},
+        year: {
+          keys: [],
+          entities: {},
+        },
         editor: {
-          [TheGreatGatsby.editor as string]: [TheGreatGatsby.id],
+          keys: [TheGreatGatsby.editor],
+          entities: { [TheGreatGatsby.editor as string]: [TheGreatGatsby.id] },
         },
       },
     });
@@ -81,20 +103,33 @@ describe('Sorted State Adapter', () => {
       },
       indexes: {
         title: {
-          [TheGreatGatsby.title]: [TheGreatGatsby.id],
-          [AClockworkOrange.title]: [AClockworkOrange.id],
-          [AnimalFarm.title]: [AnimalFarm.id],
+          keys: [
+            AClockworkOrange.title,
+            AnimalFarm.title,
+            TheGreatGatsby.title,
+          ],
+          entities: {
+            [TheGreatGatsby.title]: [TheGreatGatsby.id],
+            [AClockworkOrange.title]: [AClockworkOrange.id],
+            [AnimalFarm.title]: [AnimalFarm.id],
+          },
         },
         year: {
-          [AClockworkOrange.year as number]: [AClockworkOrange.id],
-          [AnimalFarm.year as number]: [AnimalFarm.id],
+          keys: [AnimalFarm.year, AClockworkOrange.year],
+          entities: {
+            [AClockworkOrange.year as number]: [AClockworkOrange.id],
+            [AnimalFarm.year as number]: [AnimalFarm.id],
+          },
         },
         editor: {
-          [TheGreatGatsby.editor as string]: [TheGreatGatsby.id],
-          [AClockworkOrange.editor as string]: [
-            AClockworkOrange.id,
-            AnimalFarm.id,
-          ],
+          keys: [AClockworkOrange.editor, TheGreatGatsby.editor],
+          entities: {
+            [TheGreatGatsby.editor as string]: [TheGreatGatsby.id],
+            [AClockworkOrange.editor as string]: [
+              AClockworkOrange.id,
+              AnimalFarm.id,
+            ],
+          },
         },
       },
     });
@@ -118,19 +153,15 @@ describe('Sorted State Adapter', () => {
         },
         [AClockworkOrange.id]: AClockworkOrange,
       },
-      indexes: {
+      indexes: expect.objectContaining({
         title: {
-          [firstChange.title]: [TheGreatGatsby.id],
-          [AClockworkOrange.title]: [AClockworkOrange.id],
+          keys: [AClockworkOrange.title, firstChange.title],
+          entities: {
+            [firstChange.title]: [TheGreatGatsby.id],
+            [AClockworkOrange.title]: [AClockworkOrange.id],
+          },
         },
-        year: {
-          [AClockworkOrange.year as number]: [AClockworkOrange.id],
-        },
-        editor: {
-          [TheGreatGatsby.editor as string]: [TheGreatGatsby.id],
-          [AClockworkOrange.editor as string]: [AClockworkOrange.id],
-        },
-      },
+      }),
     });
   });
 
@@ -148,22 +179,24 @@ describe('Sorted State Adapter', () => {
         [AClockworkOrange.id]: AClockworkOrange,
         [AnimalFarm.id]: AnimalFarm,
       },
-      indexes: {
+      indexes: expect.objectContaining({
         title: {
-          [AnimalFarm.title]: [AnimalFarm.id],
-          [AClockworkOrange.title]: [AClockworkOrange.id],
-        },
-        year: {
-          [AnimalFarm.year as number]: [AnimalFarm.id],
-          [AClockworkOrange.year as number]: [AClockworkOrange.id],
+          keys: [AClockworkOrange.title, AnimalFarm.title],
+          entities: {
+            [AnimalFarm.title]: [AnimalFarm.id],
+            [AClockworkOrange.title]: [AClockworkOrange.id],
+          },
         },
         editor: {
-          [AClockworkOrange.editor as string]: [
-            AClockworkOrange.id,
-            AnimalFarm.id,
-          ],
+          keys: [AClockworkOrange.editor],
+          entities: {
+            [AClockworkOrange.editor as string]: [
+              AClockworkOrange.id,
+              AnimalFarm.id,
+            ],
+          },
         },
-      },
+      }),
     });
   });
 
@@ -176,9 +209,18 @@ describe('Sorted State Adapter', () => {
       keys: [],
       entities: {},
       indexes: {
-        title: {},
-        year: {},
-        editor: {},
+        title: {
+          keys: [],
+          entities: {},
+        },
+        year: {
+          keys: [],
+          entities: {},
+        },
+        editor: {
+          keys: [],
+          entities: {},
+        },
       },
     });
   });
@@ -201,13 +243,22 @@ describe('Sorted State Adapter', () => {
       },
       indexes: {
         title: {
-          [AnimalFarm.title]: [AnimalFarm.id],
+          keys: [AnimalFarm.title],
+          entities: {
+            [AnimalFarm.title]: [AnimalFarm.id],
+          },
         },
         year: {
-          [AnimalFarm.year as number]: [AnimalFarm.id],
+          keys: [AnimalFarm.year],
+          entities: {
+            [AnimalFarm.year as number]: [AnimalFarm.id],
+          },
         },
         editor: {
-          [AnimalFarm.editor as string]: [AnimalFarm.id],
+          keys: [AnimalFarm.editor],
+          entities: {
+            [AnimalFarm.editor as string]: [AnimalFarm.id],
+          },
         },
       },
     });
@@ -231,11 +282,20 @@ describe('Sorted State Adapter', () => {
       },
       indexes: {
         title: {
-          [TheGreatGatsby.title]: [TheGreatGatsby.id],
+          keys: [TheGreatGatsby.title],
+          entities: {
+            [TheGreatGatsby.title]: [TheGreatGatsby.id],
+          },
         },
-        year: {},
+        year: {
+          keys: [],
+          entities: {},
+        },
         editor: {
-          [TheGreatGatsby.editor as string]: [TheGreatGatsby.id],
+          keys: [TheGreatGatsby.editor],
+          entities: {
+            [TheGreatGatsby.editor as string]: [TheGreatGatsby.id],
+          },
         },
       },
     });
@@ -252,7 +312,20 @@ describe('Sorted State Adapter', () => {
     expect(withoutAll).toEqual({
       keys: [],
       entities: {},
-      indexes: {},
+      indexes: {
+        title: {
+          keys: [],
+          entities: {},
+        },
+        year: {
+          keys: [],
+          entities: {},
+        },
+        editor: {
+          keys: [],
+          entities: {},
+        },
+      },
     });
   });
 
@@ -276,15 +349,14 @@ describe('Sorted State Adapter', () => {
           ...changes,
         },
       },
-      indexes: {
+      indexes: expect.objectContaining({
         title: {
-          [changes.title]: [TheGreatGatsby.id],
+          keys: [changes.title],
+          entities: {
+            [changes.title]: [TheGreatGatsby.id],
+          },
         },
-        year: {},
-        editor: {
-          [TheGreatGatsby.editor as string]: [TheGreatGatsby.id],
-        },
-      },
+      }),
     });
   });
 
@@ -340,11 +412,17 @@ describe('Sorted State Adapter', () => {
       },
       indexes: {
         title: {
-          [TheGreatGatsby.title]: [changes.id],
+          keys: [TheGreatGatsby.title],
+          entities: {
+            [TheGreatGatsby.title]: [changes.id],
+          },
         },
-        year: {},
+        year: expect.objectContaining({}),
         editor: {
-          [TheGreatGatsby.editor as string]: [changes.id],
+          keys: [TheGreatGatsby.editor],
+          entities: {
+            [TheGreatGatsby.editor as string]: [changes.id],
+          },
         },
       },
     });
@@ -377,20 +455,33 @@ describe('Sorted State Adapter', () => {
       },
       indexes: {
         title: {
-          [TheGreatGatsby.title]: [changes.id],
-          [AClockworkOrange.title]: [AClockworkOrange.id],
-          [AnimalFarm.title]: [AnimalFarm.id],
+          keys: [
+            AClockworkOrange.title,
+            AnimalFarm.title,
+            TheGreatGatsby.title,
+          ],
+          entities: {
+            [TheGreatGatsby.title]: [changes.id],
+            [AClockworkOrange.title]: [AClockworkOrange.id],
+            [AnimalFarm.title]: [AnimalFarm.id],
+          },
         },
         year: {
-          [AClockworkOrange.year as number]: [AClockworkOrange.id],
-          [AnimalFarm.year as number]: [AnimalFarm.id],
+          keys: [AnimalFarm.year, AClockworkOrange.year],
+          entities: {
+            [AClockworkOrange.year as number]: [AClockworkOrange.id],
+            [AnimalFarm.year as number]: [AnimalFarm.id],
+          },
         },
         editor: {
-          [TheGreatGatsby.editor as string]: [changes.id],
-          [AClockworkOrange.editor as string]: [
-            AClockworkOrange.id,
-            AnimalFarm.id,
-          ],
+          keys: [AClockworkOrange.editor, TheGreatGatsby.editor],
+          entities: {
+            [TheGreatGatsby.editor as string]: [changes.id],
+            [AClockworkOrange.editor as string]: [
+              AClockworkOrange.id,
+              AnimalFarm.id,
+            ],
+          },
         },
       },
     });
@@ -401,7 +492,11 @@ describe('Sorted State Adapter', () => {
       [TheGreatGatsby, AnimalFarm, AClockworkOrange],
       state
     );
-    const changes = { id: 'A New Id', title: AnimalFarm.title };
+    const changes = {
+      id: 'A New Id',
+      title: AnimalFarm.title,
+      editor: 'ZEditor',
+    };
 
     const withUpdates = adapter.updateOne(
       {
@@ -423,19 +518,28 @@ describe('Sorted State Adapter', () => {
       },
       indexes: {
         title: {
-          [AnimalFarm.title]: [changes.id, AnimalFarm.id],
-          [AClockworkOrange.title]: [AClockworkOrange.id],
+          keys: [AClockworkOrange.title, AnimalFarm.title],
+          entities: {
+            [AnimalFarm.title]: [changes.id, AnimalFarm.id],
+            [AClockworkOrange.title]: [AClockworkOrange.id],
+          },
         },
         year: {
-          [AnimalFarm.year as number]: [AnimalFarm.id],
-          [AClockworkOrange.year as number]: [AClockworkOrange.id],
+          keys: [AnimalFarm.year, AClockworkOrange.year],
+          entities: {
+            [AnimalFarm.year as number]: [AnimalFarm.id],
+            [AClockworkOrange.year as number]: [AClockworkOrange.id],
+          },
         },
         editor: {
-          [AClockworkOrange.editor as string]: [
-            AClockworkOrange.id,
-            AnimalFarm.id,
-          ],
-          [TheGreatGatsby.editor as string]: [changes.id],
+          keys: [AClockworkOrange.editor, changes.editor],
+          entities: {
+            [AClockworkOrange.editor as string]: [
+              AClockworkOrange.id,
+              AnimalFarm.id,
+            ],
+            [changes.editor]: [changes.id],
+          },
         },
       },
     });
@@ -468,15 +572,24 @@ describe('Sorted State Adapter', () => {
       },
       indexes: {
         title: {
-          [secondChange.title]: [AClockworkOrange.id],
-          [firstChange.title]: [TheGreatGatsby.id],
+          keys: [secondChange.title, firstChange.title],
+          entities: {
+            [secondChange.title]: [AClockworkOrange.id],
+            [firstChange.title]: [TheGreatGatsby.id],
+          },
         },
         year: {
-          [AClockworkOrange.year as number]: [AClockworkOrange.id],
+          keys: [AClockworkOrange.year],
+          entities: {
+            [AClockworkOrange.year as number]: [AClockworkOrange.id],
+          },
         },
         editor: {
-          [AClockworkOrange.editor as string]: [AClockworkOrange.id],
-          [TheGreatGatsby.editor as string]: [TheGreatGatsby.id],
+          keys: [AClockworkOrange.editor, TheGreatGatsby.editor],
+          entities: {
+            [AClockworkOrange.editor as string]: [AClockworkOrange.id],
+            [TheGreatGatsby.editor as string]: [TheGreatGatsby.id],
+          },
         },
       },
     });
@@ -516,20 +629,29 @@ describe('Sorted State Adapter', () => {
       },
       indexes: {
         title: {
-          [AnimalFarm.title]: [AnimalFarm.id],
-          [secondChange.title]: [AClockworkOrange.id],
-          [firstChange.title]: [TheGreatGatsby.id],
+          keys: [AnimalFarm.title, firstChange.title, secondChange.title],
+          entities: {
+            [AnimalFarm.title]: [AnimalFarm.id],
+            [secondChange.title]: [AClockworkOrange.id],
+            [firstChange.title]: [TheGreatGatsby.id],
+          },
         },
         year: {
-          [AClockworkOrange.year as number]: [AClockworkOrange.id],
-          [AnimalFarm.year as number]: [AnimalFarm.id],
+          keys: [AnimalFarm.year, AClockworkOrange.year],
+          entities: {
+            [AClockworkOrange.year as number]: [AClockworkOrange.id],
+            [AnimalFarm.year as number]: [AnimalFarm.id],
+          },
         },
         editor: {
-          [AClockworkOrange.editor as string]: [
-            AClockworkOrange.id,
-            AnimalFarm.id,
-          ],
-          [TheGreatGatsby.editor as string]: [TheGreatGatsby.id],
+          keys: [AClockworkOrange.editor, TheGreatGatsby.editor],
+          entities: {
+            [AClockworkOrange.editor as string]: [
+              AClockworkOrange.id,
+              AnimalFarm.id,
+            ],
+            [TheGreatGatsby.editor as string]: [TheGreatGatsby.id],
+          },
         },
       },
     });
@@ -557,15 +679,24 @@ describe('Sorted State Adapter', () => {
       },
       indexes: {
         title: {
-          ['Updated ' + TheGreatGatsby.title]: [TheGreatGatsby.id],
-          [AClockworkOrange.title]: [AClockworkOrange.id],
+          keys: [AClockworkOrange.title, 'Updated ' + TheGreatGatsby.title],
+          entities: {
+            ['Updated ' + TheGreatGatsby.title]: [TheGreatGatsby.id],
+            [AClockworkOrange.title]: [AClockworkOrange.id],
+          },
         },
         year: {
-          [AClockworkOrange.year as number]: [AClockworkOrange.id],
+          keys: [AClockworkOrange.year],
+          entities: {
+            [AClockworkOrange.year as number]: [AClockworkOrange.id],
+          },
         },
         editor: {
-          [TheGreatGatsby.editor as string]: [TheGreatGatsby.id],
-          [AClockworkOrange.editor as string]: [AClockworkOrange.id],
+          keys: [AClockworkOrange.editor, TheGreatGatsby.editor],
+          entities: {
+            [TheGreatGatsby.editor as string]: [TheGreatGatsby.id],
+            [AClockworkOrange.editor as string]: [AClockworkOrange.id],
+          },
         },
       },
     });
@@ -578,15 +709,7 @@ describe('Sorted State Adapter', () => {
       entities: {
         [TheGreatGatsby.id]: TheGreatGatsby,
       },
-      indexes: {
-        title: {
-          [TheGreatGatsby.title]: [TheGreatGatsby.id],
-        },
-        year: {},
-        editor: {
-          [TheGreatGatsby.editor as string]: [TheGreatGatsby.id],
-        },
-      },
+      indexes: expect.objectContaining({}),
     });
   });
 
@@ -608,11 +731,17 @@ describe('Sorted State Adapter', () => {
       },
       indexes: {
         title: {
-          [changes.title]: [TheGreatGatsby.id],
+          keys: [changes.title],
+          entities: {
+            [changes.title]: [TheGreatGatsby.id],
+          },
         },
-        year: {},
+        year: expect.objectContaining({}),
         editor: {
-          [TheGreatGatsby.editor as string]: [TheGreatGatsby.id],
+          keys: [TheGreatGatsby.editor],
+          entities: {
+            [TheGreatGatsby.editor as string]: [TheGreatGatsby.id],
+          },
         },
       },
     });
@@ -638,15 +767,24 @@ describe('Sorted State Adapter', () => {
       },
       indexes: {
         title: {
-          [firstChange.title]: [TheGreatGatsby.id],
-          [AClockworkOrange.title]: [AClockworkOrange.id],
+          keys: [AClockworkOrange.title, firstChange.title],
+          entities: {
+            [firstChange.title]: [TheGreatGatsby.id],
+            [AClockworkOrange.title]: [AClockworkOrange.id],
+          },
         },
         year: {
-          [AClockworkOrange.year as number]: [AClockworkOrange.id],
+          keys: [AClockworkOrange.year],
+          entities: {
+            [AClockworkOrange.year as number]: [AClockworkOrange.id],
+          },
         },
         editor: {
-          [TheGreatGatsby.editor as string]: [TheGreatGatsby.id],
-          [AClockworkOrange.editor as string]: [AClockworkOrange.id],
+          keys: [AClockworkOrange.editor, TheGreatGatsby.editor],
+          entities: {
+            [TheGreatGatsby.editor as string]: [TheGreatGatsby.id],
+            [AClockworkOrange.editor as string]: [AClockworkOrange.id],
+          },
         },
       },
     });
@@ -661,11 +799,20 @@ describe('Sorted State Adapter', () => {
       },
       indexes: {
         title: {
-          [TheGreatGatsby.title]: [TheGreatGatsby.id],
+          keys: [TheGreatGatsby.title],
+          entities: {
+            [TheGreatGatsby.title]: [TheGreatGatsby.id],
+          },
         },
-        year: {},
+        year: {
+          keys: [],
+          entities: {},
+        },
         editor: {
-          [TheGreatGatsby.editor as string]: [TheGreatGatsby.id],
+          keys: [TheGreatGatsby.editor],
+          entities: {
+            [TheGreatGatsby.editor as string]: [TheGreatGatsby.id],
+          },
         },
       },
     });
@@ -692,19 +839,28 @@ describe('Sorted State Adapter', () => {
       },
       indexes: {
         title: {
-          [updatedBook.title]: [TheGreatGatsby.id],
-          [AClockworkOrange.title]: [AClockworkOrange.id],
-          [AnimalFarm.title]: [AnimalFarm.id],
+          keys: [AClockworkOrange.title, updatedBook.title, AnimalFarm.title],
+          entities: {
+            [updatedBook.title]: [TheGreatGatsby.id],
+            [AClockworkOrange.title]: [AClockworkOrange.id],
+            [AnimalFarm.title]: [AnimalFarm.id],
+          },
         },
         year: {
-          [AClockworkOrange.year as number]: [AClockworkOrange.id],
-          [AnimalFarm.year as number]: [AnimalFarm.id],
+          keys: [AnimalFarm.year, AClockworkOrange.year],
+          entities: {
+            [AClockworkOrange.year as number]: [AClockworkOrange.id],
+            [AnimalFarm.year as number]: [AnimalFarm.id],
+          },
         },
         editor: {
-          [AClockworkOrange.editor as string]: [
-            AClockworkOrange.id,
-            AnimalFarm.id,
-          ],
+          keys: [AClockworkOrange.editor],
+          entities: {
+            [AClockworkOrange.editor as string]: [
+              AClockworkOrange.id,
+              AnimalFarm.id,
+            ],
+          },
         },
       },
     });

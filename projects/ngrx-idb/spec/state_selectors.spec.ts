@@ -1,7 +1,7 @@
 import {
   createIDBEntityAdapter,
   IDBEntityAdapter,
-  EntityState,
+  IDBEntityState,
 } from '../src/lib';
 import { IDBEntitySelectors } from '../src/lib/models';
 import {
@@ -15,7 +15,7 @@ import { MemoizedSelector, createSelector } from '@ngrx/store';
 describe('Entity State Selectors', () => {
   describe('Composed Selectors', () => {
     interface State {
-      books: EntityState<BookModel>;
+      books: IDBEntityState<BookModel>;
     }
 
     let adapter: IDBEntityAdapter<BookModel>;
@@ -64,10 +64,10 @@ describe('Entity State Selectors', () => {
   });
 
   describe('Uncomposed Selectors', () => {
-    type State = EntityState<BookModel>;
+    type State = IDBEntityState<BookModel>;
 
     let adapter: IDBEntityAdapter<BookModel>;
-    let selectors: IDBEntitySelectors<BookModel, EntityState<BookModel>>;
+    let selectors: IDBEntitySelectors<BookModel, IDBEntityState<BookModel>>;
     let state: State;
 
     beforeEach(() => {
@@ -99,7 +99,7 @@ describe('Entity State Selectors', () => {
     it('should type single entity from Dictionary as entity type or undefined', () => {
       // MemoizedSelector acts like a type checker
       const singleEntity: MemoizedSelector<
-        EntityState<BookModel>,
+        IDBEntityState<BookModel>,
         BookModel | undefined
       > = createSelector(selectors.selectEntities, (enitites) => enitites[0]);
     });

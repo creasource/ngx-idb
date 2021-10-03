@@ -22,9 +22,18 @@ describe('Entity State', () => {
       keys: [],
       entities: {},
       indexes: {
-        title: {},
-        year: {},
-        editor: {},
+        title: {
+          keys: [],
+          entities: {},
+        },
+        year: {
+          keys: [],
+          entities: {},
+        },
+        editor: {
+          keys: [],
+          entities: {},
+        },
       },
     });
   });
@@ -39,9 +48,18 @@ describe('Entity State', () => {
       keys: [],
       entities: {},
       indexes: {
-        title: {},
-        year: {},
-        editor: {},
+        title: {
+          keys: [],
+          entities: {},
+        },
+        year: {
+          keys: [],
+          entities: {},
+        },
+        editor: {
+          keys: [],
+          entities: {},
+        },
       },
     });
   });

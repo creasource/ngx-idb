@@ -45,13 +45,18 @@ export function getSort<T>(
 
   if (typeof key === 'string') {
     return (a: T, b: T) => {
-      if (getKey(a, selectKey) === undefined) console.error(a, selectKey);
-      return getKey(a, selectKey).localeCompare(getKey(b, selectKey)) ?? 1;
+      const aKey = getKey(a, selectKey);
+      const bKey = getKey(b, selectKey);
+      return aKey === bKey ? 0 : aKey > bKey ? 1 : -1;
     };
   }
   if (typeof key === 'number') {
     return (a: T, b: T) => getKey(a, selectKey) - getKey(b, selectKey);
   }
+  // if (key instanceof Date) {
+  //   return (a: T, b: T) =>
+  //     (getKey(a, selectKey) as Date) > (getKey(b, selectKey) as Date) ? 1 : -1;
+  // }
 
   throw new Error('invalid');
 }

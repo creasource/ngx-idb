@@ -1,7 +1,7 @@
 export { createIDBEntityAdapter } from './create_adapter';
 export {
   Dictionary,
-  EntityState,
+  IDBEntityState,
   IDBEntityAdapter,
   Update,
   EntityMap,

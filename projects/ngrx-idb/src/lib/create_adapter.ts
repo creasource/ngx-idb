@@ -13,6 +13,7 @@ export function createIDBEntityAdapter<T>(
   const stateFactory = createInitialStateFactory<T>(indexes);
   const selectorsFactory = createSelectorsFactory<T>();
   const stateAdapter = createSortedStateAdapter(
+    stateFactory.getInitialState,
     autoIncrement ?? false,
     keySelector,
     indexes

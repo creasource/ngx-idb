@@ -3,26 +3,35 @@ import {
   EntityMap,
   EntityMapOneNum,
   EntityMapOneStr,
-  EntityState,
   EntityStateAdapter,
+  IDBEntityState,
   KeySelector,
   Predicate,
   Update,
 } from './models';
 import { createStateOperator, DidMutate } from './state_adapter';
-import { getKey, getSort, selectKeyValue } from './utils';
+import { getKey, selectKeyValue } from './utils';
 
 export function createSortedStateAdapter<T>(
+  getInitialState: (state?: any) => any,
   autoIncrement: boolean,
   selectKey: KeySelector<T> | undefined,
   indexes: EntityIndexDefinition<T>[]
 ): EntityStateAdapter<T>;
 export function createSortedStateAdapter<T>(
+  getInitialState: (state?: any) => any,
   autoIncrement: boolean,
   selectKey: KeySelector<T> | undefined,
   indexes: EntityIndexDefinition<T>[]
 ): any {
-  type R = EntityState<T>;
+  type R = IDBEntityState<T>;
+
+  function* keyGenerator() {
+    let index = 1;
+    while (true) yield index++;
+  }
+
+  const keyGen = keyGenerator();
 
   function getIndexDefinition(index: EntityIndexDefinition<T>) {
     if (typeof index === 'string') {
@@ -40,13 +49,8 @@ export function createSortedStateAdapter<T>(
 
   const indexesDefs = indexes.map(getIndexDefinition);
 
-  function removeAll<S extends R>(state: S): S;
-  function removeAll<S extends R>(state: any): S {
-    return Object.assign({}, state, {
-      keys: [],
-      entities: {},
-      indexes: {},
-    });
+  function removeAll<S extends R>(state: S): S {
+    return Object.assign({}, state, getInitialState());
   }
 
   function deleteEntitiesFromIndexes(
@@ -56,12 +60,22 @@ export function createSortedStateAdapter<T>(
   function deleteEntitiesFromIndexes(toDelete: any[], state: any): void {
     indexesDefs.forEach((def) => {
       const index = state.indexes[def.name];
-      Object.keys(index).forEach((key) => {
-        index[key] = index[key].filter(
+
+      const { keys, entities } = index;
+
+      const obsoleteKeys: any[] = [];
+
+      keys.forEach((key: any) => {
+        entities[key] = entities[key].filter(
           (primaryKey: any) => !toDelete.includes(primaryKey)
         );
-        if (index[key].length === 0) delete index[key];
+        if (entities[key].length === 0) {
+          delete entities[key];
+          obsoleteKeys.push(key);
+        }
       });
+
+      index.keys = keys.filter((k: any) => !obsoleteKeys.includes(k));
     });
   }
 
@@ -119,9 +133,10 @@ export function createSortedStateAdapter<T>(
 
   function setAllMutably(models: T[], state: R): DidMutate;
   function setAllMutably(models: any[], state: any): DidMutate {
-    state.entities = {};
-    state.keys = [];
-    state.indexes = {};
+    const { entities, keys, indexes } = getInitialState();
+    state.entities = entities;
+    state.keys = keys;
+    state.indexes = indexes;
 
     addManyMutably(models, state);
 
@@ -288,43 +303,26 @@ export function createSortedStateAdapter<T>(
     }
   }
 
-  function merge(models: T[], state: R): void;
-  function merge(models: any[], state: any): void {
-    if (models.length === 0) {
-      return;
-    }
-
-    const sort =
-      selectKey &&
-      getSort(
-        models.find((model) => getKey(model, selectKey) !== undefined),
-        selectKey
-      );
-
-    if (sort) {
-      models.sort(sort);
-    }
-
+  function mergeKeys(
+    modelKeys: any[],
+    indexKeys: any[],
+    uniq: boolean = false
+  ) {
     const keys: any[] = [];
-    const generatedKeys: any[] = [];
 
     let i = 0;
     let j = 0;
 
-    while (i < models.length && j < state.keys.length) {
-      const model = models[i];
-      let modelKey: any;
-      if (selectKey) {
-        modelKey = selectKeyValue(model, selectKey);
-      } else {
-        modelKey = 0; // TODO
-        generatedKeys.push(modelKey);
+    while (i < modelKeys.length && j < indexKeys.length) {
+      const modelKey = modelKeys[i];
+      const entityKey = indexKeys[j];
+
+      if (uniq && modelKey === entityKey) {
+        i++;
+        continue;
       }
 
-      const entityKey = state.keys[j];
-      const entity = state.entities[entityKey];
-
-      if (sort && sort(model, entity) <= 0) {
+      if ([modelKey, entityKey].sort()[0] === modelKey) {
         keys.push(modelKey);
         i++;
       } else {
@@ -333,72 +331,72 @@ export function createSortedStateAdapter<T>(
       }
     }
 
-    if (i < models.length) {
-      state.keys = keys.concat(
-        selectKey
-          ? models.slice(i).map((model) => getKey(model, selectKey))
-          : generatedKeys
-      );
-    } else {
-      state.keys = keys.concat(state.keys.slice(j));
+    return i < modelKeys.length
+      ? keys.concat(modelKeys.slice(i))
+      : keys.concat(indexKeys.slice(j));
+  }
+
+  function merge(models: T[], state: R): void;
+  function merge(models: any[], state: any): void {
+    if (models.length === 0) {
+      return;
     }
+
+    const modelWithKeys = models.map((model) => ({
+      key: (selectKey && getKey(model, selectKey)) || keyGen.next().value,
+      value: model,
+    }));
 
     if (selectKey) {
-      models.forEach((model) => {
-        state.entities[getKey(model, selectKey)] = model;
-      });
-    } else {
-      generatedKeys.forEach((key, i) => (state.entities[key] = models[i]));
+      modelWithKeys.sort((a, b) =>
+        a.key === b.key ? 0 : a.key > b.key ? 1 : -1
+      );
     }
 
-    indexes.forEach((index) => {
-      const { name, keySelector } = getIndexDefinition(index);
-      const sort = getSort(
-        models.find((model) => getKey(model, keySelector) !== undefined),
-        keySelector
-      );
-      const indexObj = { ...state.indexes[name] } ?? {};
+    state.keys = mergeKeys(
+      modelWithKeys.map(({ key }) => key),
+      state.keys
+    );
 
-      const sortedModels = [...models].sort(sort);
+    modelWithKeys.forEach(({ key, value }) => {
+      state.entities[key] = value;
+    });
 
-      // const keys: any[] = [];
-      //
-      // let i = 0;
-      // let j = 0;
-      //
-      // while (i < models.length && j < state.keys.length) {
-      //   const model = models[i];
-      //   let modelKey = selectKeyValue(model, keySelector);
-      //
-      //   const entityKey = state.keys[j];
-      //   const entity = state.entities[entityKey];
-      //
-      //   if (sort && sort(model, entity) <= 0) {
-      //     keys.push(modelKey);
-      //     i++;
-      //   } else {
-      //     keys.push(entityKey);
-      //     j++;
-      //   }
-      // }
+    indexes.forEach((def) => {
+      const { name, keySelector } = getIndexDefinition(def);
+      const index = state.indexes[name];
 
-      sortedModels
-        .map((model, i) => ({
-          key: getKey(model, keySelector),
-          model,
-          index: i,
+      const modelWithIndexKeys = modelWithKeys
+        .map(({ key, value }) => ({
+          key,
+          value,
+          indexKey: getKey(value, keySelector),
         }))
-        .filter((o) => o.key !== undefined)
-        .forEach((o) => {
-          const primaryKeys: any[] = [...(indexObj[o.key] ?? [])];
-          selectKey
-            ? primaryKeys.push(getKey(o.model, selectKey))
-            : primaryKeys.push(generatedKeys[o.index]);
-          primaryKeys.sort();
-          indexObj[o.key] = primaryKeys;
-        });
-      delete state.indexes[name];
-      state.indexes[name] = indexObj;
+        .filter((o) => o.indexKey !== undefined)
+        .sort((o1, o2) =>
+          o1.indexKey === o2.indexKey ? 0 : o1.indexKey > o2.indexKey ? 1 : -1
+        );
+
+      if (modelWithIndexKeys.length === 0) {
+        return;
+      }
+
+      const uniq = (val: any, index: number, array: any[]) =>
+        array.indexOf(val) === index;
+
+      index.keys = mergeKeys(
+        modelWithIndexKeys.map(({ indexKey }) => indexKey).filter(uniq),
+        index.keys,
+        true
+      );
+
+      modelWithIndexKeys.forEach(({ indexKey, key }) => {
+        index.entities[indexKey] = mergeKeys(
+          [key],
+          index.entities[indexKey] ?? [],
+          true
+        );
+      });
     });
   }
 
