@@ -3,7 +3,7 @@ import {
   EntityMap,
   EntityMapOneNum,
   EntityMapOneStr,
-  EntityStateAdapter,
+  IDBEntityStateAdapter,
   IDBEntityState,
   KeySelector,
   Predicate,
@@ -12,19 +12,19 @@ import {
 import { createStateOperator, DidMutate } from './state_adapter';
 import { getKey, selectKeyValue } from './utils';
 
-export function createSortedStateAdapter<T>(
+export function createSortedStateAdapter<T, Index extends string>(
   getInitialState: (state?: any) => any,
   autoIncrement: boolean,
   selectKey: KeySelector<T> | undefined,
-  indexes: EntityIndexDefinition<T>[]
-): EntityStateAdapter<T>;
-export function createSortedStateAdapter<T>(
+  indexes: readonly EntityIndexDefinition<T, Index>[]
+): IDBEntityStateAdapter<T, Index>;
+export function createSortedStateAdapter<T, Index extends string>(
   getInitialState: (state?: any) => any,
   autoIncrement: boolean,
   selectKey: KeySelector<T> | undefined,
-  indexes: EntityIndexDefinition<T>[]
+  indexes: readonly EntityIndexDefinition<T, Index>[]
 ): any {
-  type R = IDBEntityState<T>;
+  type R = IDBEntityState<T, Index>;
 
   function* keyGenerator() {
     let index = 1;
@@ -33,7 +33,7 @@ export function createSortedStateAdapter<T>(
 
   const keyGen = keyGenerator();
 
-  function getIndexDefinition(index: EntityIndexDefinition<T>) {
+  function getIndexDefinition(index: EntityIndexDefinition<T, Index>) {
     if (typeof index === 'string') {
       return {
         name: index,
@@ -44,6 +44,8 @@ export function createSortedStateAdapter<T>(
       name: index.name,
       keySelector:
         index.keySelector ?? ((model: T) => (model as any)[index.name]),
+      multiEntry: index.multiEntry,
+      // unique: index.unique, // TODO
     };
   }
 
@@ -303,6 +305,20 @@ export function createSortedStateAdapter<T>(
     }
   }
 
+  const sort = (a: any, b: any) => {
+    return a instanceof Date
+      ? a.getTime() === b.getTime()
+        ? 0
+        : a.getTime() > b.getTime()
+        ? 1
+        : -1
+      : a === b
+      ? 0
+      : a > b
+      ? 1
+      : -1;
+  };
+
   function mergeKeys(
     modelKeys: any[],
     indexKeys: any[],
@@ -317,12 +333,17 @@ export function createSortedStateAdapter<T>(
       const modelKey = modelKeys[i];
       const entityKey = indexKeys[j];
 
-      if (uniq && modelKey === entityKey) {
+      const equals =
+        modelKey instanceof Date
+          ? modelKey.getTime() === entityKey.getTime()
+          : modelKey === entityKey;
+
+      if (uniq && equals) {
         i++;
         continue;
       }
 
-      if ([modelKey, entityKey].sort()[0] === modelKey) {
+      if ([modelKey, entityKey].sort(sort)[0] === modelKey) {
         keys.push(modelKey);
         i++;
       } else {
@@ -348,9 +369,7 @@ export function createSortedStateAdapter<T>(
     }));
 
     if (selectKey) {
-      modelWithKeys.sort((a, b) =>
-        a.key === b.key ? 0 : a.key > b.key ? 1 : -1
-      );
+      modelWithKeys.sort((a, b) => sort(a.key, b.key));
     }
 
     state.keys = mergeKeys(
@@ -362,27 +381,42 @@ export function createSortedStateAdapter<T>(
       state.entities[key] = value;
     });
 
-    indexes.forEach((def) => {
-      const { name, keySelector } = getIndexDefinition(def);
+    indexesDefs.forEach((def) => {
+      const { name, keySelector, multiEntry } = def;
       const index = state.indexes[name];
 
-      const modelWithIndexKeys = modelWithKeys
+      let modelWithIndexKeys = modelWithKeys
         .map(({ key, value }) => ({
           key,
           value,
           indexKey: getKey(value, keySelector),
         }))
-        .filter((o) => o.indexKey !== undefined)
-        .sort((o1, o2) =>
-          o1.indexKey === o2.indexKey ? 0 : o1.indexKey > o2.indexKey ? 1 : -1
-        );
+        .filter((o) => o.indexKey !== undefined);
 
       if (modelWithIndexKeys.length === 0) {
         return;
       }
 
-      const uniq = (val: any, index: number, array: any[]) =>
-        array.indexOf(val) === index;
+      if (multiEntry) {
+        modelWithIndexKeys = modelWithIndexKeys
+          .map(({ key, value, indexKey: indexKeys }) =>
+            indexKeys.map((indexKey: any) => ({ key, value, indexKey }))
+          )
+          .reduce((acc, curr) => [...acc, ...curr], []);
+      }
+
+      modelWithIndexKeys.sort((a, b) => sort(a.indexKey, b.indexKey));
+
+      const uniq = (val: any, index: number, array: any[]) => {
+        if (val instanceof Date) {
+          return (
+            array.findIndex((value) => value.getTime() === val.getTime()) ===
+            index
+          );
+        } else {
+          return array.indexOf(val) === index;
+        }
+      };
 
       index.keys = mergeKeys(
         modelWithIndexKeys.map(({ indexKey }) => indexKey).filter(uniq),

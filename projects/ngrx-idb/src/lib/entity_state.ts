@@ -1,6 +1,6 @@
 import { EntityIndexDefinition, IDBEntityState } from './models';
 
-export function getInitialEntityState<V>(): IDBEntityState<V> {
+function getInitialEntityState<T>() {
   return {
     keys: [],
     entities: {},
@@ -8,13 +8,13 @@ export function getInitialEntityState<V>(): IDBEntityState<V> {
   };
 }
 
-export function createInitialStateFactory<V>(
-  indexes: EntityIndexDefinition<V>[]
+export function createInitialStateFactory<T, Index extends string>(
+  indexes: readonly EntityIndexDefinition<T, Index>[]
 ) {
-  function getInitialState(): IDBEntityState<V>;
+  function getInitialState(): IDBEntityState<T, Index>;
   function getInitialState<S extends object>(
     additionalState: S
-  ): IDBEntityState<V> & S;
+  ): IDBEntityState<T, Index> & S;
   function getInitialState(additionalState: any = {}): any {
     const indexesNames = indexes.map((def) =>
       typeof def === 'string' ? def : def.name

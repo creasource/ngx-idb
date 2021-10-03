@@ -1,16 +1,20 @@
 import { createSelector } from '@ngrx/store';
 import { IDBEntityState, IDBEntitySelectors, Dictionary } from './models';
 
-export function createSelectorsFactory<T>() {
-  function getSelectors(): IDBEntitySelectors<T, IDBEntityState<T>>;
+export function createSelectorsFactory<T, Index extends string>() {
+  function getSelectors(): IDBEntitySelectors<
+    T,
+    Index,
+    IDBEntityState<T, Index>
+  >;
   function getSelectors<V>(
-    selectState: (state: V) => IDBEntityState<T>
-  ): IDBEntitySelectors<T, V>;
+    selectState: (state: V) => IDBEntityState<T, Index>
+  ): IDBEntitySelectors<T, Index, V>;
   function getSelectors(
-    selectState?: (state: any) => IDBEntityState<T>
-  ): IDBEntitySelectors<T, any> {
-    const selectKeys = (state: IDBEntityState<T>) => state.keys;
-    const selectEntities = (state: IDBEntityState<T>) => state.entities;
+    selectState?: (state: any) => IDBEntityState<T, Index>
+  ): IDBEntitySelectors<T, Index, any> {
+    const selectKeys = (state: IDBEntityState<T, Index>) => state.keys;
+    const selectEntities = (state: IDBEntityState<T, Index>) => state.entities;
     const selectAll = createSelector(
       selectKeys,
       selectEntities,
@@ -20,13 +24,15 @@ export function createSelectorsFactory<T>() {
 
     const selectTotal = createSelector(selectKeys, (keys) => keys.length);
 
-    const selectIndexKeys = (index: string) => (state: IDBEntityState<T>) =>
-      state.indexes[index].keys;
+    const selectIndexKeys =
+      (index: Index) => (state: IDBEntityState<T, Index>) =>
+        state.indexes[index].keys;
 
-    const selectIndexEntities = (index: string) => (state: IDBEntityState<T>) =>
-      state.indexes[index].entities;
+    const selectIndexEntities =
+      (index: Index) => (state: IDBEntityState<T, Index>) =>
+        state.indexes[index].entities;
 
-    const selectIndexAll = (index: string) =>
+    const selectIndexAll = (index: Index) =>
       createSelector(
         selectIndexKeys(index),
         selectIndexEntities(index),
@@ -51,11 +57,11 @@ export function createSelectorsFactory<T>() {
     }
 
     return {
-      selectIndexKeys: (index: string) =>
+      selectIndexKeys: (index: Index) =>
         createSelector(selectState, selectIndexKeys(index)),
-      selectIndexEntities: (index: string) =>
+      selectIndexEntities: (index: Index) =>
         createSelector(selectState, selectIndexEntities(index)),
-      selectIndexAll: (index: string) =>
+      selectIndexAll: (index: Index) =>
         createSelector(selectState, selectIndexAll(index)),
       selectKeys: createSelector(selectState, selectKeys),
       selectEntities: createSelector(selectState, selectEntities),

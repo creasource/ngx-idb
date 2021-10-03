@@ -1,5 +1,5 @@
 import { isDevMode } from '@angular/core';
-import { Comparer, KeySelector } from './models';
+import { KeySelector } from './models';
 
 export function getKey<T>(entity: T, selectKey: KeySelector<T>) {
   return typeof selectKey === 'string'
@@ -29,34 +29,34 @@ export function selectKeyValue<T>(entity: T, selectKey: KeySelector<T>) {
   return key;
 }
 
-export function getSort<T>(
-  entity: T,
-  selectKey: KeySelector<T>
-): Comparer<T> | undefined {
-  if (entity === undefined) {
-    return undefined;
-  }
-
-  const key = getKey(entity, selectKey);
-
-  if (key === undefined) {
-    return undefined;
-  }
-
-  if (typeof key === 'string') {
-    return (a: T, b: T) => {
-      const aKey = getKey(a, selectKey);
-      const bKey = getKey(b, selectKey);
-      return aKey === bKey ? 0 : aKey > bKey ? 1 : -1;
-    };
-  }
-  if (typeof key === 'number') {
-    return (a: T, b: T) => getKey(a, selectKey) - getKey(b, selectKey);
-  }
-  // if (key instanceof Date) {
-  //   return (a: T, b: T) =>
-  //     (getKey(a, selectKey) as Date) > (getKey(b, selectKey) as Date) ? 1 : -1;
-  // }
-
-  throw new Error('invalid');
-}
+// export function getSort<T>(
+//   entity: T,
+//   selectKey: KeySelector<T>
+// ): Comparer<T> | undefined {
+//   if (entity === undefined) {
+//     return undefined;
+//   }
+//
+//   const key = getKey(entity, selectKey);
+//
+//   if (key === undefined) {
+//     return undefined;
+//   }
+//
+//   if (typeof key === 'string') {
+//     return (a: T, b: T) => {
+//       const aKey = getKey(a, selectKey);
+//       const bKey = getKey(b, selectKey);
+//       return aKey === bKey ? 0 : aKey > bKey ? 1 : -1;
+//     };
+//   }
+//   if (typeof key === 'number') {
+//     return (a: T, b: T) => getKey(a, selectKey) - getKey(b, selectKey);
+//   }
+//   // if (key instanceof Date) {
+//   //   return (a: T, b: T) =>
+//   //     (getKey(a, selectKey) as Date) > (getKey(b, selectKey) as Date) ? 1 : -1;
+//   // }
+//
+//   throw new Error('invalid');
+// }

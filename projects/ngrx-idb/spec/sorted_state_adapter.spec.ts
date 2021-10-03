@@ -1,4 +1,4 @@
-import { IDBEntityState, EntityStateAdapter } from '../src/lib/models';
+import { IDBEntityState, IDBEntityStateAdapter } from '../src/lib/models';
 import { createIDBEntityAdapter } from '../src/lib';
 import {
   AClockworkOrange,
@@ -8,8 +8,8 @@ import {
 } from './fixtures/book';
 
 describe('Sorted State Adapter', () => {
-  let adapter: EntityStateAdapter<BookModel>;
-  let state: IDBEntityState<BookModel>;
+  let adapter: IDBEntityStateAdapter<BookModel, 'title' | 'year' | 'editor'>;
+  let state: IDBEntityState<BookModel, 'title' | 'year' | 'editor'>;
 
   beforeAll(() => {
     Object.defineProperty(Array.prototype, 'unwantedField', {

@@ -1,5 +1,3 @@
-export type Comparer<T> = (a: T, b: T) => number;
-
 export type KeySelectorStr<T> = (model: T) => string | undefined;
 export type KeySelectorNum<T> = (model: T) => number | undefined;
 
@@ -9,13 +7,12 @@ export type KeySelector<T> =
   | string
   | string[];
 
-export interface DictionaryNum<T> {
-  [id: number]: T | undefined;
-}
+export type Dictionary<T> = Record<any, T | undefined>;
 
-export abstract class Dictionary<T> implements DictionaryNum<T> {
-  [id: string]: T | undefined;
-}
+// export abstract class Dictionary<T> {
+//   [id: string]: T | undefined;
+//   [id: number]: T | undefined;
+// }
 
 export interface UpdateStr<T> {
   key: string;
@@ -45,77 +42,84 @@ export interface EntityMapOneStr<T> {
 
 export type EntityMapOne<T> = EntityMapOneNum<T> | EntityMapOneStr<T>;
 
-export interface IDBEntityState<T> {
+export interface IDBEntityState<T, Index extends string> {
   keys: string[] | number[];
   entities: Dictionary<T>;
   indexes: {
-    [name: string]: {
+    [name in Index]: {
       keys: string[] | number[];
       entities: Dictionary<string[] | number[]>;
     };
   };
 }
 
-export type EntityIndexDefinition<T> =
+export type EntityIndexDefinition<T, Index extends string> =
   | {
-      name: string;
+      name: Index;
       multiEntry?: boolean;
       unique?: boolean;
       keySelector?: KeySelector<T>;
     }
-  | string;
+  | Index;
 
-export interface EntityDefinition<T> {
+export interface EntityDefinition<T, Index extends string> {
   autoIncrement?: boolean;
   keySelector?: KeySelector<T>;
-  indexes: EntityIndexDefinition<T>[];
+  indexes: readonly EntityIndexDefinition<T, Index>[];
 }
 
-export interface EntityStateAdapter<T> {
-  addOne<S extends IDBEntityState<T>>(entity: T, state: S): S;
-  addMany<S extends IDBEntityState<T>>(entities: T[], state: S): S;
+export interface IDBEntityStateAdapter<T, Index extends string> {
+  addOne<S extends IDBEntityState<T, Index>>(entity: T, state: S): S;
+  addMany<S extends IDBEntityState<T, Index>>(entities: T[], state: S): S;
 
-  setAll<S extends IDBEntityState<T>>(entities: T[], state: S): S;
-  setOne<S extends IDBEntityState<T>>(entity: T, state: S): S;
-  setMany<S extends IDBEntityState<T>>(entities: T[], state: S): S;
+  setAll<S extends IDBEntityState<T, Index>>(entities: T[], state: S): S;
+  setOne<S extends IDBEntityState<T, Index>>(entity: T, state: S): S;
+  setMany<S extends IDBEntityState<T, Index>>(entities: T[], state: S): S;
 
-  removeOne<S extends IDBEntityState<T>>(key: string, state: S): S;
-  removeOne<S extends IDBEntityState<T>>(key: number, state: S): S;
+  removeOne<S extends IDBEntityState<T, Index>>(key: string, state: S): S;
+  removeOne<S extends IDBEntityState<T, Index>>(key: number, state: S): S;
 
-  removeMany<S extends IDBEntityState<T>>(keys: string[], state: S): S;
-  removeMany<S extends IDBEntityState<T>>(keys: number[], state: S): S;
-  removeMany<S extends IDBEntityState<T>>(predicate: Predicate<T>, state: S): S;
+  removeMany<S extends IDBEntityState<T, Index>>(keys: string[], state: S): S;
+  removeMany<S extends IDBEntityState<T, Index>>(keys: number[], state: S): S;
+  removeMany<S extends IDBEntityState<T, Index>>(
+    predicate: Predicate<T>,
+    state: S
+  ): S;
 
-  removeAll<S extends IDBEntityState<T>>(state: S): S;
+  removeAll<S extends IDBEntityState<T, Index>>(state: S): S;
 
-  updateOne<S extends IDBEntityState<T>>(update: Update<T>, state: S): S;
-  updateMany<S extends IDBEntityState<T>>(updates: Update<T>[], state: S): S;
+  updateOne<S extends IDBEntityState<T, Index>>(update: Update<T>, state: S): S;
+  updateMany<S extends IDBEntityState<T, Index>>(
+    updates: Update<T>[],
+    state: S
+  ): S;
 
-  upsertOne<S extends IDBEntityState<T>>(entity: T, state: S): S;
-  upsertMany<S extends IDBEntityState<T>>(entities: T[], state: S): S;
+  upsertOne<S extends IDBEntityState<T, Index>>(entity: T, state: S): S;
+  upsertMany<S extends IDBEntityState<T, Index>>(entities: T[], state: S): S;
 
-  mapOne<S extends IDBEntityState<T>>(map: EntityMapOne<T>, state: S): S;
-  map<S extends IDBEntityState<T>>(map: EntityMap<T>, state: S): S;
+  mapOne<S extends IDBEntityState<T, Index>>(map: EntityMapOne<T>, state: S): S;
+  map<S extends IDBEntityState<T, Index>>(map: EntityMap<T>, state: S): S;
 }
 
-export interface IDBEntitySelectors<T, V> {
-  selectIndexKeys: (index: string) => (state: V) => string[] | number[];
+export interface IDBEntitySelectors<T, Index extends string, V> {
+  selectIndexKeys: (index: Index) => (state: V) => string[] | number[];
   selectIndexEntities: (
-    index: string
+    index: Index
   ) => (state: V) => Dictionary<string[] | number[]>;
-  selectIndexAll: (index: string) => (state: V) => T[];
+  selectIndexAll: (index: Index) => (state: V) => T[];
   selectKeys: (state: V) => string[] | number[];
   selectEntities: (state: V) => Dictionary<T>;
   selectAll: (state: V) => T[];
   selectTotal: (state: V) => number;
 }
 
-export interface IDBEntityAdapter<T> extends EntityStateAdapter<T> {
+export interface IDBEntityAdapter<T, Index extends string>
+  extends IDBEntityStateAdapter<T, Index> {
   keySelector: KeySelector<T> | undefined;
-  getInitialState(): IDBEntityState<T>;
-  getInitialState<S extends object>(state: S): IDBEntityState<T> & S;
-  getSelectors(): IDBEntitySelectors<T, IDBEntityState<T>>;
+  getInitialState(): IDBEntityState<T, Index>;
+  getInitialState<S extends object>(state: S): IDBEntityState<T, Index> & S;
+  getSelectors(): IDBEntitySelectors<T, Index, IDBEntityState<T, Index>>;
   getSelectors<V>(
-    selectState: (state: V) => IDBEntityState<T>
-  ): IDBEntitySelectors<T, V>;
+    selectState: (state: V) => IDBEntityState<T, Index>
+  ): IDBEntitySelectors<T, Index, V>;
 }

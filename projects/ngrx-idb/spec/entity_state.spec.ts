@@ -2,7 +2,7 @@ import { createIDBEntityAdapter, IDBEntityAdapter } from '../src/lib';
 import { BookModel } from './fixtures/book';
 
 describe('Entity State', () => {
-  let adapter: IDBEntityAdapter<BookModel>;
+  let adapter: IDBEntityAdapter<BookModel, 'title' | 'year' | 'editor'>;
 
   beforeEach(() => {
     adapter = createIDBEntityAdapter({

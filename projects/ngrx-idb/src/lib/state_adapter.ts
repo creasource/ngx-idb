@@ -6,17 +6,17 @@ export enum DidMutate {
   None,
 }
 
-export function createStateOperator<V, R>(
-  mutator: (arg: R, state: IDBEntityState<V>) => DidMutate
-): IDBEntityState<V>;
-export function createStateOperator<V, R>(
+export function createStateOperator<T, Index extends string, R>(
+  mutator: (arg: R, state: IDBEntityState<T, Index>) => DidMutate
+): IDBEntityState<T, Index>;
+export function createStateOperator<T, Index extends string, R>(
   mutator: (arg: any, state: any) => DidMutate
 ): any {
-  return function operation<S extends IDBEntityState<V>>(
+  return function operation<S extends IDBEntityState<T, Index>>(
     arg: R,
     state: any
   ): S {
-    const clonedEntityState: IDBEntityState<V> = {
+    const clonedEntityState: IDBEntityState<T, Index> = {
       keys: [...state.keys],
       entities: { ...state.entities },
       indexes: { ...state.indexes },

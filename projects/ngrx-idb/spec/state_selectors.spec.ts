@@ -15,11 +15,11 @@ import { MemoizedSelector, createSelector } from '@ngrx/store';
 describe('Entity State Selectors', () => {
   describe('Composed Selectors', () => {
     interface State {
-      books: IDBEntityState<BookModel>;
+      books: IDBEntityState<BookModel, never>;
     }
 
-    let adapter: IDBEntityAdapter<BookModel>;
-    let selectors: IDBEntitySelectors<BookModel, State>;
+    let adapter: IDBEntityAdapter<BookModel, never>;
+    let selectors: IDBEntitySelectors<BookModel, never, State>;
     let state: State;
 
     beforeEach(() => {
@@ -64,10 +64,14 @@ describe('Entity State Selectors', () => {
   });
 
   describe('Uncomposed Selectors', () => {
-    type State = IDBEntityState<BookModel>;
+    type State = IDBEntityState<BookModel, never>;
 
-    let adapter: IDBEntityAdapter<BookModel>;
-    let selectors: IDBEntitySelectors<BookModel, IDBEntityState<BookModel>>;
+    let adapter: IDBEntityAdapter<BookModel, never>;
+    let selectors: IDBEntitySelectors<
+      BookModel,
+      never,
+      IDBEntityState<BookModel, never>
+    >;
     let state: State;
 
     beforeEach(() => {
@@ -98,10 +102,11 @@ describe('Entity State Selectors', () => {
 
     it('should type single entity from Dictionary as entity type or undefined', () => {
       // MemoizedSelector acts like a type checker
+      // noinspection JSUnusedLocalSymbols
       const singleEntity: MemoizedSelector<
-        IDBEntityState<BookModel>,
+        IDBEntityState<BookModel, never>,
         BookModel | undefined
-      > = createSelector(selectors.selectEntities, (enitites) => enitites[0]);
+      > = createSelector(selectors.selectEntities, (entities) => entities[0]);
     });
 
     it('should create a selector for selecting the list of models', () => {

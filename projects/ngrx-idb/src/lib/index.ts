@@ -8,5 +8,4 @@ export {
   EntityMapOne,
   Predicate,
   KeySelector,
-  Comparer,
 } from './models';
