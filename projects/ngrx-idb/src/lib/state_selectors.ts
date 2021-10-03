@@ -1,5 +1,10 @@
 import { createSelector } from '@ngrx/store';
-import { IDBEntityState, IDBEntitySelectors, Dictionary } from './models';
+import {
+  IDBEntityState,
+  IDBEntitySelectors,
+  Dictionary,
+  KeyType,
+} from './models';
 
 export function createSelectorsFactory<T, Index extends string>() {
   function getSelectors(): IDBEntitySelectors<
@@ -18,8 +23,8 @@ export function createSelectorsFactory<T, Index extends string>() {
     const selectAll = createSelector(
       selectKeys,
       selectEntities,
-      (keys: string[] | number[], entities: Dictionary<T>): any =>
-        keys.map((key) => entities[key])
+      (keys: KeyType[], entities: Dictionary<T>): any =>
+        keys.map((key) => entities[key as any])
     );
 
     const selectTotal = createSelector(selectKeys, (keys) => keys.length);
@@ -39,7 +44,7 @@ export function createSelectorsFactory<T, Index extends string>() {
         selectEntities,
         (keys, index, entities) =>
           keys
-            .map((key) => index[key] as [])
+            .map((key) => index[key as any] as [])
             .reduce((acc, curr) => [...acc, ...curr] as [], [])
             .map((key) => entities[key] as T)
       );

@@ -1,13 +1,15 @@
+// noinspection JSUnusedLocalSymbols
+
 import * as ngCore from '@angular/core';
-import { selectKeyValue } from '../src/lib/utils';
 import { AClockworkOrange } from './fixtures/book';
+import { selectPrimaryKey } from '../src/lib/utils';
 
 describe('Entity utils', () => {
   describe(`selectIdValue()`, () => {
     it('should not warn when key does exist', () => {
       const spy = spyOn(console, 'warn');
 
-      const key = selectKeyValue(AClockworkOrange, (book) => book.id);
+      const key = selectPrimaryKey(AClockworkOrange, (book) => book.id);
 
       expect(spy).not.toHaveBeenCalled();
     });
@@ -15,7 +17,7 @@ describe('Entity utils', () => {
     it('should warn when key does not exist in dev mode', () => {
       const spy = spyOn(console, 'warn');
 
-      const key = selectKeyValue(AClockworkOrange, (book: any) => book.foo);
+      const key = selectPrimaryKey(AClockworkOrange, (book: any) => book.foo);
 
       expect(spy).toHaveBeenCalled();
     });
@@ -24,7 +26,7 @@ describe('Entity utils', () => {
       const spy = spyOn(console, 'warn');
 
       const undefinedAClockworkOrange = { ...AClockworkOrange, id: undefined };
-      const key = selectKeyValue(
+      const key = selectPrimaryKey(
         undefinedAClockworkOrange,
         (book: any) => book.id
       );
@@ -36,7 +38,7 @@ describe('Entity utils', () => {
       spyOn(ngCore, 'isDevMode').and.returnValue(false);
       const spy = spyOn(console, 'warn');
 
-      const key = selectKeyValue(AClockworkOrange, (book: any) => book.foo);
+      const key = selectPrimaryKey(AClockworkOrange, (book: any) => book.foo);
 
       expect(spy).not.toHaveBeenCalled();
     });
@@ -46,7 +48,7 @@ describe('Entity utils', () => {
       const spy = spyOn(console, 'warn');
 
       const undefinedAClockworkOrange = { ...AClockworkOrange, id: undefined };
-      const key = selectKeyValue(
+      const key = selectPrimaryKey(
         undefinedAClockworkOrange,
         (book: any) => book.id
       );

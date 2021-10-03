@@ -1,19 +1,38 @@
 import { isDevMode } from '@angular/core';
-import { KeySelector } from './models';
+import {
+  IndexKeySelector,
+  IndexKeySelectorFn,
+  PrimaryKeySelector,
+  PrimaryKeySelectorFn,
+} from './models';
 
-export function getKey<T>(entity: T, selectKey: KeySelector<T>) {
-  return typeof selectKey === 'string'
-    ? (entity as any)[selectKey]
-    : selectKey instanceof Array
-    ? selectKey.reduce(
-        (result, path) => entity && (entity as any)[path],
-        entity
-      )
-    : selectKey(entity);
+export function* keyGenerator() {
+  let index = 1;
+  while (true) yield index++;
 }
 
-export function selectKeyValue<T>(entity: T, selectKey: KeySelector<T>) {
-  const key = getKey(entity, selectKey);
+export function getKeySelectorFn<T>(
+  selectKey: PrimaryKeySelector<T>
+): PrimaryKeySelectorFn<T>;
+export function getKeySelectorFn<T>(
+  selectKey: IndexKeySelector<T>
+): IndexKeySelectorFn<T>;
+export function getKeySelectorFn<T>(
+  selectKey: PrimaryKeySelector<T> | IndexKeySelector<T>
+) {
+  return typeof selectKey === 'string'
+    ? (entity: any) => entity[selectKey]
+    : selectKey instanceof Array
+    ? (entity: any) =>
+        selectKey.reduce((result, path) => entity && entity[path], entity)
+    : (entity: T) => selectKey(entity);
+}
+
+export function selectPrimaryKey<T>(
+  entity: T,
+  selectKey: PrimaryKeySelectorFn<T>
+): any {
+  const key = selectKey(entity);
 
   if (isDevMode() && key === undefined) {
     console.warn(
@@ -28,35 +47,3 @@ export function selectKeyValue<T>(entity: T, selectKey: KeySelector<T>) {
 
   return key;
 }
-
-// export function getSort<T>(
-//   entity: T,
-//   selectKey: KeySelector<T>
-// ): Comparer<T> | undefined {
-//   if (entity === undefined) {
-//     return undefined;
-//   }
-//
-//   const key = getKey(entity, selectKey);
-//
-//   if (key === undefined) {
-//     return undefined;
-//   }
-//
-//   if (typeof key === 'string') {
-//     return (a: T, b: T) => {
-//       const aKey = getKey(a, selectKey);
-//       const bKey = getKey(b, selectKey);
-//       return aKey === bKey ? 0 : aKey > bKey ? 1 : -1;
-//     };
-//   }
-//   if (typeof key === 'number') {
-//     return (a: T, b: T) => getKey(a, selectKey) - getKey(b, selectKey);
-//   }
-//   // if (key instanceof Date) {
-//   //   return (a: T, b: T) =>
-//   //     (getKey(a, selectKey) as Date) > (getKey(b, selectKey) as Date) ? 1 : -1;
-//   // }
-//
-//   throw new Error('invalid');
-// }

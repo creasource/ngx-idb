@@ -1,4 +1,4 @@
-import { EntityIndexDefinition, IDBEntityState } from './models';
+import { IndexDefinition, IDBEntityState } from './models';
 
 function getInitialEntityState<T>() {
   return {
@@ -9,7 +9,7 @@ function getInitialEntityState<T>() {
 }
 
 export function createInitialStateFactory<T, Index extends string>(
-  indexes: readonly EntityIndexDefinition<T, Index>[]
+  indexes: readonly IndexDefinition<T, Index>[]
 ) {
   function getInitialState(): IDBEntityState<T, Index>;
   function getInitialState<S extends object>(

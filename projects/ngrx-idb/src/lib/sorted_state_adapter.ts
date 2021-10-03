@@ -1,49 +1,39 @@
 import {
-  EntityIndexDefinition,
+  IndexDefinition,
   EntityMap,
-  EntityMapOneNum,
-  EntityMapOneStr,
   IDBEntityStateAdapter,
   IDBEntityState,
-  KeySelector,
   Predicate,
   Update,
+  EntityMapOne,
+  KeyType,
+  PrimaryKeySelector,
 } from './models';
 import { createStateOperator, DidMutate } from './state_adapter';
-import { getKey, selectKeyValue } from './utils';
+import { getKeySelectorFn, selectPrimaryKey } from './utils';
 
-export function createSortedStateAdapter<T, Index extends string>(
-  getInitialState: (state?: any) => any,
-  autoIncrement: boolean,
-  selectKey: KeySelector<T> | undefined,
-  indexes: readonly EntityIndexDefinition<T, Index>[]
-): IDBEntityStateAdapter<T, Index>;
-export function createSortedStateAdapter<T, Index extends string>(
-  getInitialState: (state?: any) => any,
-  autoIncrement: boolean,
-  selectKey: KeySelector<T> | undefined,
-  indexes: readonly EntityIndexDefinition<T, Index>[]
-): any {
+export function createIndexedStateAdapter<T, Index extends string>(
+  getInitialState: () => IDBEntityState<T, Index>,
+  keySelector: PrimaryKeySelector<T>,
+  indexes: readonly IndexDefinition<T, Index>[]
+): IDBEntityStateAdapter<T, Index> {
   type R = IDBEntityState<T, Index>;
 
-  function* keyGenerator() {
-    let index = 1;
-    while (true) yield index++;
-  }
+  const keySelectorFn = getKeySelectorFn(keySelector);
 
-  const keyGen = keyGenerator();
-
-  function getIndexDefinition(index: EntityIndexDefinition<T, Index>) {
+  function getIndexDefinition(index: IndexDefinition<T, Index>) {
     if (typeof index === 'string') {
       return {
         name: index,
-        keySelector: (model: T) => (model as any)[index],
+        keySelectorFn: (model: any) => model[index],
+        multiEntry: false,
       };
     }
     return {
       name: index.name,
-      keySelector:
-        index.keySelector ?? ((model: T) => (model as any)[index.name]),
+      keySelectorFn: getKeySelectorFn(
+        index.keySelector ?? ((model: any) => model[index.name])
+      ),
       multiEntry: index.multiEntry,
       // unique: index.unique, // TODO
     };
@@ -55,11 +45,7 @@ export function createSortedStateAdapter<T, Index extends string>(
     return Object.assign({}, state, getInitialState());
   }
 
-  function deleteEntitiesFromIndexes(
-    toDelete: string[] | number[],
-    state: R
-  ): void;
-  function deleteEntitiesFromIndexes(toDelete: any[], state: any): void {
+  function deleteEntitiesFromIndexes(toDelete: KeyType[], state: R): void {
     indexesDefs.forEach((def) => {
       const index = state.indexes[def.name];
 
@@ -68,10 +54,10 @@ export function createSortedStateAdapter<T, Index extends string>(
       const obsoleteKeys: any[] = [];
 
       keys.forEach((key: any) => {
-        entities[key] = entities[key].filter(
+        entities[key] = entities[key]?.filter(
           (primaryKey: any) => !toDelete.includes(primaryKey)
         );
-        if (entities[key].length === 0) {
+        if (entities[key]?.length === 0) {
           delete entities[key];
           obsoleteKeys.push(key);
         }
@@ -81,23 +67,26 @@ export function createSortedStateAdapter<T, Index extends string>(
     });
   }
 
-  function removeOneMutably(key: string | number, state: R): DidMutate;
-  function removeOneMutably(key: any, state: any): DidMutate {
+  function removeOneMutably(key: KeyType, state: R): DidMutate {
     return removeManyMutably([key], state);
   }
 
-  function removeManyMutably(keys: string[] | number[], state: R): DidMutate;
+  function removeManyMutably(keys: KeyType[], state: R): DidMutate;
   function removeManyMutably(predicate: Predicate<T>, state: R): DidMutate;
   function removeManyMutably(
-    keysOrPredicate: any[] | Predicate<T>,
-    state: any
+    keysOrPredicate: KeyType[] | Predicate<T>,
+    state: R
   ): DidMutate {
     const keys =
       keysOrPredicate instanceof Array
         ? keysOrPredicate
-        : state.keys.filter((key: any) => keysOrPredicate(state.entities[key]));
+        : state.keys.filter((key: any) =>
+            keysOrPredicate(state.entities[key] as T)
+          );
 
-    const toDelete = keys.filter((key: any) => key in state.entities);
+    const toDelete: KeyType[] = keys.filter(
+      (key: any) => key in state.entities
+    );
 
     toDelete.forEach((key: any) => delete state.entities[key]);
 
@@ -112,18 +101,14 @@ export function createSortedStateAdapter<T, Index extends string>(
     return didMutate ? DidMutate.Both : DidMutate.None;
   }
 
-  function addOneMutably(entity: T, state: R): DidMutate;
-  function addOneMutably(entity: any, state: any): DidMutate {
+  function addOneMutably(entity: T, state: R): DidMutate {
     return addManyMutably([entity], state);
   }
 
-  function addManyMutably(newModels: T[], state: R): DidMutate;
-  function addManyMutably(newModels: any[], state: any): DidMutate {
-    const models = selectKey
-      ? newModels.filter(
-          (model) => !(selectKeyValue(model, selectKey) in state.entities)
-        )
-      : newModels;
+  function addManyMutably(newModels: T[], state: R): DidMutate {
+    const models = newModels.filter(
+      (model) => !(selectPrimaryKey(model, keySelectorFn) in state.entities)
+    );
 
     if (models.length === 0) {
       return DidMutate.None;
@@ -133,8 +118,7 @@ export function createSortedStateAdapter<T, Index extends string>(
     }
   }
 
-  function setAllMutably(models: T[], state: R): DidMutate;
-  function setAllMutably(models: any[], state: any): DidMutate {
+  function setAllMutably(models: T[], state: R): DidMutate {
     const { entities, keys, indexes } = getInitialState();
     state.entities = entities;
     state.keys = keys;
@@ -145,11 +129,10 @@ export function createSortedStateAdapter<T, Index extends string>(
     return DidMutate.Both;
   }
 
-  function setOneMutably(entity: T, state: R): DidMutate;
-  function setOneMutably(entity: any, state: any): DidMutate {
-    const key = selectKey ? selectKeyValue(entity, selectKey) : -1;
+  function setOneMutably(entity: T, state: R): DidMutate {
+    const key = selectPrimaryKey(entity, keySelectorFn);
     if (key in state.entities) {
-      state.keys = state.keys.filter((val: string | number) => val !== key);
+      state.keys = state.keys.filter((val) => val !== key);
       deleteEntitiesFromIndexes([key], state);
       merge([entity], state);
       return DidMutate.Both;
@@ -158,8 +141,7 @@ export function createSortedStateAdapter<T, Index extends string>(
     }
   }
 
-  function setManyMutably(entities: T[], state: R): DidMutate;
-  function setManyMutably(entities: any[], state: any): DidMutate {
+  function setManyMutably(entities: T[], state: R): DidMutate {
     const didMutateSetOne = entities.map((entity) =>
       setOneMutably(entity, state)
     );
@@ -176,30 +158,29 @@ export function createSortedStateAdapter<T, Index extends string>(
     }
   }
 
-  function updateOneMutably(update: Update<T>, state: R): DidMutate;
-  function updateOneMutably(update: any, state: any): DidMutate {
+  function updateOneMutably(update: Update<T>, state: R): DidMutate {
     return updateManyMutably([update], state);
   }
 
-  function takeUpdatedModel(models: T[], update: Update<T>, state: R): boolean;
-  function takeUpdatedModel(models: any[], update: any, state: any): boolean {
-    if (!(update.key in state.entities)) {
+  function takeUpdatedModel(models: T[], update: Update<T>, state: R): boolean {
+    const oldKey = update.key as any;
+
+    if (!(oldKey in state.entities)) {
       return false;
     }
 
-    const original = state.entities[update.key];
+    const original = state.entities[oldKey];
     const updated = Object.assign({}, original, update.changes);
-    const newKey = selectKey ? selectKeyValue(updated, selectKey) : update.key;
+    const newKey = selectPrimaryKey(updated, keySelectorFn);
 
-    delete state.entities[update.key];
+    delete state.entities[oldKey];
 
     models.push(updated);
 
     return newKey !== update.key;
   }
 
-  function updateManyMutably(updates: Update<T>[], state: R): DidMutate;
-  function updateManyMutably(updates: any[], state: any): DidMutate {
+  function updateManyMutably(updates: Update<T>[], state: R): DidMutate {
     const models: T[] = [];
 
     const didMutateKeys =
@@ -210,9 +191,9 @@ export function createSortedStateAdapter<T, Index extends string>(
       return DidMutate.None;
     } else {
       const originalKeys = state.keys;
-      const updatedIndexes: any[] = [];
-      const keysToDelete: any[] = [];
-      state.keys = (state.keys as any[]).filter((key: any, index: number) => {
+      const updatedIndexes: number[] = [];
+      const keysToDelete: KeyType[] = [];
+      state.keys = state.keys.filter((key: any, index: number) => {
         if (key in state.entities) {
           return true;
         } else {
@@ -237,12 +218,11 @@ export function createSortedStateAdapter<T, Index extends string>(
     }
   }
 
-  function mapMutably(map: EntityMap<T>, state: R): DidMutate;
-  function mapMutably(updatesOrMap: any, state: any): DidMutate {
+  function mapMutably(map: EntityMap<T>, state: R): DidMutate {
     const updates: Update<T>[] = state.keys.reduce(
-      (changes: any[], key: string | number) => {
-        const change = updatesOrMap(state.entities[key]);
-        if (change !== state.entities[key]) {
+      (changes: Update<T>[], key: KeyType) => {
+        const change = map(state.entities[key as any] as T);
+        if (change !== state.entities[key as any]) {
           changes.push({ key, changes: change });
         }
         return changes;
@@ -253,10 +233,8 @@ export function createSortedStateAdapter<T, Index extends string>(
     return updateManyMutably(updates, state);
   }
 
-  function mapOneMutably(map: EntityMapOneNum<T>, state: R): DidMutate;
-  function mapOneMutably(map: EntityMapOneStr<T>, state: R): DidMutate;
-  function mapOneMutably({ map, key }: any, state: any): DidMutate {
-    const entity = state.entities[key];
+  function mapOneMutably({ map, key }: EntityMapOne<T>, state: R): DidMutate {
+    const entity = state.entities[key as any];
     if (!entity) {
       return DidMutate.None;
     }
@@ -271,18 +249,16 @@ export function createSortedStateAdapter<T, Index extends string>(
     );
   }
 
-  function upsertOneMutably(entity: T, state: R): DidMutate;
-  function upsertOneMutably(entity: any, state: any): DidMutate {
+  function upsertOneMutably(entity: T, state: R): DidMutate {
     return upsertManyMutably([entity], state);
   }
 
-  function upsertManyMutably(entities: T[], state: R): DidMutate;
-  function upsertManyMutably(entities: any[], state: any): DidMutate {
+  function upsertManyMutably(entities: T[], state: R): DidMutate {
     const added: any[] = [];
     const updated: any[] = [];
 
     for (const entity of entities) {
-      const key = selectKey ? selectKeyValue(entity, selectKey) : -1;
+      const key = selectPrimaryKey(entity, keySelectorFn);
       if (key in state.entities) {
         updated.push({ key, changes: entity });
       } else {
@@ -305,8 +281,8 @@ export function createSortedStateAdapter<T, Index extends string>(
     }
   }
 
-  const sort = (a: any, b: any) => {
-    return a instanceof Date
+  const sort = (a: KeyType, b: KeyType) => {
+    return a instanceof Date && b instanceof Date
       ? a.getTime() === b.getTime()
         ? 0
         : a.getTime() > b.getTime()
@@ -320,8 +296,8 @@ export function createSortedStateAdapter<T, Index extends string>(
   };
 
   function mergeKeys(
-    modelKeys: any[],
-    indexKeys: any[],
+    modelKeys: KeyType[],
+    indexKeys: KeyType[],
     uniq: boolean = false
   ) {
     const keys: any[] = [];
@@ -333,14 +309,15 @@ export function createSortedStateAdapter<T, Index extends string>(
       const modelKey = modelKeys[i];
       const entityKey = indexKeys[j];
 
-      const equals =
-        modelKey instanceof Date
-          ? modelKey.getTime() === entityKey.getTime()
-          : modelKey === entityKey;
-
-      if (uniq && equals) {
-        i++;
-        continue;
+      if (uniq) {
+        const equals =
+          modelKey instanceof Date && entityKey instanceof Date
+            ? modelKey.getTime() === entityKey.getTime()
+            : modelKey === entityKey;
+        if (equals) {
+          i++;
+          continue;
+        }
       }
 
       if ([modelKey, entityKey].sort(sort)[0] === modelKey) {
@@ -357,20 +334,17 @@ export function createSortedStateAdapter<T, Index extends string>(
       : keys.concat(indexKeys.slice(j));
   }
 
-  function merge(models: T[], state: R): void;
-  function merge(models: any[], state: any): void {
+  function merge(models: T[], state: R): void {
     if (models.length === 0) {
       return;
     }
 
     const modelWithKeys = models.map((model) => ({
-      key: (selectKey && getKey(model, selectKey)) || keyGen.next().value,
+      key: keySelectorFn(model),
       value: model,
     }));
 
-    if (selectKey) {
-      modelWithKeys.sort((a, b) => sort(a.key, b.key));
-    }
+    modelWithKeys.sort((a, b) => sort(a.key, b.key));
 
     state.keys = mergeKeys(
       modelWithKeys.map(({ key }) => key),
@@ -378,18 +352,17 @@ export function createSortedStateAdapter<T, Index extends string>(
     );
 
     modelWithKeys.forEach(({ key, value }) => {
-      state.entities[key] = value;
+      state.entities[key as any] = value;
     });
 
-    indexesDefs.forEach((def) => {
-      const { name, keySelector, multiEntry } = def;
+    indexesDefs.forEach(({ name, keySelectorFn, multiEntry }) => {
       const index = state.indexes[name];
 
       let modelWithIndexKeys = modelWithKeys
         .map(({ key, value }) => ({
           key,
           value,
-          indexKey: getKey(value, keySelector),
+          indexKey: keySelectorFn(value),
         }))
         .filter((o) => o.indexKey !== undefined);
 

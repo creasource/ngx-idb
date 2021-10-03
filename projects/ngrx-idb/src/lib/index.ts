@@ -7,5 +7,6 @@ export {
   EntityMap,
   EntityMapOne,
   Predicate,
-  KeySelector,
+  IndexKeySelector,
+  PrimaryKeySelector,
 } from './models';

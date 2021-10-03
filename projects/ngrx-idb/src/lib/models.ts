@@ -1,72 +1,60 @@
-export type KeySelectorStr<T> = (model: T) => string | undefined;
-export type KeySelectorNum<T> = (model: T) => number | undefined;
+export type KeyType = string | number | Date;
 
-export type KeySelector<T> =
-  | KeySelectorStr<T>
-  | KeySelectorNum<T>
-  | string
-  | string[];
+export type PrimaryKeySelectorFn<T> = (model: T) => KeyType;
+
+export type PrimaryKeySelector<T> = PrimaryKeySelectorFn<T> | string | string[];
+
+export type IndexKeySelectorFn<T> = (model: T) => KeyType | undefined;
+
+export type IndexKeySelector<T> = IndexKeySelectorFn<T> | string | string[];
 
 export type Dictionary<T> = Record<any, T | undefined>;
 
-// export abstract class Dictionary<T> {
-//   [id: string]: T | undefined;
-//   [id: number]: T | undefined;
-// }
-
-export interface UpdateStr<T> {
-  key: string;
+export type Update<T> = {
+  key: KeyType;
   changes: Partial<T>;
-}
-
-export interface UpdateNum<T> {
-  key: number;
-  changes: Partial<T>;
-}
-
-export type Update<T> = UpdateStr<T> | UpdateNum<T>;
+};
 
 export type Predicate<T> = (entity: T) => boolean;
 
 export type EntityMap<T> = (entity: T) => T;
 
-export interface EntityMapOneNum<T> {
-  key: number;
+export type EntityMapOne<T> = {
+  key: KeyType;
   map: EntityMap<T>;
-}
+};
 
-export interface EntityMapOneStr<T> {
-  key: string;
-  map: EntityMap<T>;
-}
-
-export type EntityMapOne<T> = EntityMapOneNum<T> | EntityMapOneStr<T>;
-
-export interface IDBEntityState<T, Index extends string> {
-  keys: string[] | number[];
+export type IDBEntityState<T, Index extends string> = {
+  keys: KeyType[];
   entities: Dictionary<T>;
   indexes: {
     [name in Index]: {
-      keys: string[] | number[];
-      entities: Dictionary<string[] | number[]>;
+      keys: KeyType[];
+      entities: Dictionary<KeyType[]>;
     };
   };
-}
+};
 
-export type EntityIndexDefinition<T, Index extends string> =
+export type IndexDefinition<T, Index extends string> =
   | {
       name: Index;
       multiEntry?: boolean;
       unique?: boolean;
-      keySelector?: KeySelector<T>;
+      keySelector?: IndexKeySelector<T>;
     }
   | Index;
 
-export interface EntityDefinition<T, Index extends string> {
-  autoIncrement?: boolean;
-  keySelector?: KeySelector<T>;
-  indexes: readonly EntityIndexDefinition<T, Index>[];
-}
+export type EntityDefinition<T, Index extends string> =
+  | {
+      autoIncrement: true;
+      keySelector?: PrimaryKeySelector<T>;
+      indexes: readonly IndexDefinition<T, Index>[];
+    }
+  | {
+      autoIncrement: false;
+      keySelector: PrimaryKeySelector<T>;
+      indexes: readonly IndexDefinition<T, Index>[];
+    };
 
 export interface IDBEntityStateAdapter<T, Index extends string> {
   addOne<S extends IDBEntityState<T, Index>>(entity: T, state: S): S;
@@ -76,11 +64,9 @@ export interface IDBEntityStateAdapter<T, Index extends string> {
   setOne<S extends IDBEntityState<T, Index>>(entity: T, state: S): S;
   setMany<S extends IDBEntityState<T, Index>>(entities: T[], state: S): S;
 
-  removeOne<S extends IDBEntityState<T, Index>>(key: string, state: S): S;
-  removeOne<S extends IDBEntityState<T, Index>>(key: number, state: S): S;
+  removeOne<S extends IDBEntityState<T, Index>>(key: KeyType, state: S): S;
 
-  removeMany<S extends IDBEntityState<T, Index>>(keys: string[], state: S): S;
-  removeMany<S extends IDBEntityState<T, Index>>(keys: number[], state: S): S;
+  removeMany<S extends IDBEntityState<T, Index>>(keys: KeyType[], state: S): S;
   removeMany<S extends IDBEntityState<T, Index>>(
     predicate: Predicate<T>,
     state: S
@@ -102,12 +88,10 @@ export interface IDBEntityStateAdapter<T, Index extends string> {
 }
 
 export interface IDBEntitySelectors<T, Index extends string, V> {
-  selectIndexKeys: (index: Index) => (state: V) => string[] | number[];
-  selectIndexEntities: (
-    index: Index
-  ) => (state: V) => Dictionary<string[] | number[]>;
+  selectIndexKeys: (index: Index) => (state: V) => KeyType[];
+  selectIndexEntities: (index: Index) => (state: V) => Dictionary<KeyType[]>;
   selectIndexAll: (index: Index) => (state: V) => T[];
-  selectKeys: (state: V) => string[] | number[];
+  selectKeys: (state: V) => KeyType[];
   selectEntities: (state: V) => Dictionary<T>;
   selectAll: (state: V) => T[];
   selectTotal: (state: V) => number;
@@ -115,7 +99,8 @@ export interface IDBEntitySelectors<T, Index extends string, V> {
 
 export interface IDBEntityAdapter<T, Index extends string>
   extends IDBEntityStateAdapter<T, Index> {
-  keySelector: KeySelector<T> | undefined;
+  autoIncrement: boolean;
+  keySelector: PrimaryKeySelector<T> | undefined;
   getInitialState(): IDBEntityState<T, Index>;
   getInitialState<S extends object>(state: S): IDBEntityState<T, Index> & S;
   getSelectors(): IDBEntitySelectors<T, Index, IDBEntityState<T, Index>>;

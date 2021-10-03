@@ -67,11 +67,7 @@ describe('Entity State Selectors', () => {
     type State = IDBEntityState<BookModel, never>;
 
     let adapter: IDBEntityAdapter<BookModel, never>;
-    let selectors: IDBEntitySelectors<
-      BookModel,
-      never,
-      IDBEntityState<BookModel, never>
-    >;
+    let selectors: IDBEntitySelectors<BookModel, never, State>;
     let state: State;
 
     beforeEach(() => {
