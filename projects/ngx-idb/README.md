@@ -1,6 +1,6 @@
 # NgxIDB
 
-An Angular wrapper to IndexedDB.
+An Angular module for [reactive-idb](https://github.com/creasource/reactive-idb).
 
 ## Installation
 
