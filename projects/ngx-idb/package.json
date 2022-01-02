@@ -1,16 +1,16 @@
 {
   "name": "@creasource/ngx-idb",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "repository": "https://github.com/creasource/ngx-idb",
-  "description": "Angular wrapper for @creasource/reactive-idb",
+  "description": "Angular module for @creasource/reactive-idb",
   "license": "MIT",
   "keywords": [
     "indexeddb",
     "angular"
   ],
   "peerDependencies": {
-    "@angular/common": "^12.2.0",
-    "@angular/core": "^12.2.0",
+    "@angular/common": "^13.1.1",
+    "@angular/core": "^13.1.1",
     "@creasource/reactive-idb": "^1.2.1"
   },
   "dependencies": {
