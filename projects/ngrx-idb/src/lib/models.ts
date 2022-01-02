@@ -1,4 +1,4 @@
-export type KeyType = string | number | Date;
+export type KeyType = string | number;
 
 export type PrimaryKeySelectorFn<T> = (model: T) => KeyType;
 
