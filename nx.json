@@ -1,0 +1,13 @@
+{
+  "npmScope": "@creasource",
+  "workspaceLayout": {
+    "libsDir": "projects"
+  },
+  "affected": {
+    "defaultBase": "main"
+  },
+  "cli": {
+    "defaultCollection": "@angular-eslint/schematics"
+  },
+  "defaultProject": "ngx-idb"
+}

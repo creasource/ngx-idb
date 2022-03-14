@@ -1,6 +1,6 @@
 {
   "name": "@creasource/ngrx-idb",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "repository": "https://github.com/creasource/ngx-idb",
   "description": "An indexed entity store for @ngrx/store",
   "license": "MIT",
@@ -10,9 +10,9 @@
     "ngrx"
   ],
   "peerDependencies": {
-    "@angular/common": "^13.1.1",
-    "@angular/core": "^13.1.1",
-    "@ngrx/store": "^13.0.2"
+    "@angular/common": "^13",
+    "@angular/core": "^13",
+    "@ngrx/store": "^13"
   },
   "dependencies": {
     "tslib": "^2.3.0"
