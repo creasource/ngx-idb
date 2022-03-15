@@ -6,7 +6,13 @@ export type PrimaryKeySelector<T> = PrimaryKeySelectorFn<T> | string | string[];
 
 export type IndexKeySelectorFn<T> = (model: T) => KeyType | undefined;
 
+export type IndexKeyMultiSelectorFn<T> = (model: T) => KeyType[] | undefined;
+
 export type IndexKeySelector<T> = IndexKeySelectorFn<T> | string | string[];
+export type IndexKeyMultiSelector<T> =
+  | IndexKeyMultiSelectorFn<T>
+  | string
+  | string[];
 
 export type Dictionary<T> = Record<any, T | undefined>;
 
@@ -38,9 +44,15 @@ export type IDBEntityState<T, Index extends string> = {
 export type IndexDefinition<T, Index extends string> =
   | {
       name: Index;
-      multiEntry?: boolean;
+      multiEntry?: false;
       unique?: boolean;
       keySelector?: IndexKeySelector<T>;
+    }
+  | {
+      name: Index;
+      multiEntry: true;
+      unique?: boolean;
+      keySelector?: IndexKeyMultiSelector<T>;
     }
   | Index;
 

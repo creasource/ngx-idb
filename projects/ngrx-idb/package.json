@@ -1,6 +1,6 @@
 {
   "name": "@creasource/ngrx-idb",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "repository": "https://github.com/creasource/ngx-idb",
   "description": "An indexed entity store for @ngrx/store",
   "license": "MIT",

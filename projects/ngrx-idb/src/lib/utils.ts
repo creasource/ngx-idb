@@ -1,5 +1,7 @@
 import { isDevMode } from '@angular/core';
 import {
+  IndexKeyMultiSelector,
+  IndexKeyMultiSelectorFn,
   IndexKeySelector,
   IndexKeySelectorFn,
   PrimaryKeySelector,
@@ -18,7 +20,13 @@ export function getKeySelectorFn<T>(
   selectKey: IndexKeySelector<T>
 ): IndexKeySelectorFn<T>;
 export function getKeySelectorFn<T>(
-  selectKey: PrimaryKeySelector<T> | IndexKeySelector<T>
+  selectKey: IndexKeyMultiSelector<T>
+): IndexKeyMultiSelectorFn<T>;
+export function getKeySelectorFn<T>(
+  selectKey:
+    | PrimaryKeySelector<T>
+    | IndexKeySelector<T>
+    | IndexKeyMultiSelector<T>
 ) {
   return typeof selectKey === 'string'
     ? (entity: any) => entity[selectKey]

@@ -32,7 +32,7 @@ export function createIndexedStateAdapter<T, Index extends string>(
     return {
       name: index.name,
       keySelectorFn: getKeySelectorFn(
-        index.keySelector ?? ((model: any) => model[index.name])
+        index.keySelector ?? (((model: any) => model[index.name]) as any)
       ),
       multiEntry: index.multiEntry,
       // unique: index.unique, // TODO
